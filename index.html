@@ -52,12 +52,12 @@ body {
 .video-wrapper video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .video-player { 
   width: 100%; 
   height: 100%; 
-  object-fit: contain; 
+  object-fit: cover; 
   background: #000; 
   display: block;
 }
@@ -181,15 +181,16 @@ body {
 .section.active { display: block; }
 
 /* Fullscreen styles */
-:fullscreen video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
+:fullscreen, :-webkit-full-screen, :-moz-full-screen, :-ms-fullscreen {
+  background: #000 !important;
 }
-:-webkit-full-screen video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
+:fullscreen video,
+:-webkit-full-screen video,
+:-moz-full-screen video,
+:-ms-fullscreen video {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
 }
 
 </style>
@@ -207,7 +208,7 @@ body {
       </div>
       <span class="font-bold text-xl tracking-tighter">beubeuland</span>
     </div>
-    <div class="px-2 py-0.5 bg-red-600 text-[10px] font-bold rounded-full">18+</div>
+    
   </div>
 </div>
 
@@ -739,9 +740,6 @@ async function loadVideos() {
       </div>`;
 
     const overlay = document.createElement('div'); overlay.className = 'absolute inset-0 video-overlay z-10';
-    const badge = document.createElement('div');
-    badge.className = 'absolute top-14 left-3 px-2 py-0.5 bg-red-600 text-[9px] font-bold rounded-full z-20';
-    badge.textContent = '18+';
     const authorName = video.authorName || 'Beubeuland';
     const info = document.createElement('div'); info.className = 'video-info';
     info.innerHTML = `<div class="font-bold text-base leading-tight">${escapeHtml(video.title)}</div><div class="text-xs text-zinc-300 mt-0.5 leading-tight">${escapeHtml(video.description || '')}</div><div class="text-[10px] text-emerald-400 mt-1">@${escapeHtml(authorName)}</div>`;
@@ -765,7 +763,7 @@ async function loadVideos() {
     videoWrapper.className = 'video-wrapper';
     videoWrapper.appendChild(videoEl);
     videoWrapper.appendChild(overlay);
-    videoWrapper.appendChild(badge);
+
     videoWrapper.appendChild(info);
     videoWrapper.appendChild(actions);
     videoWrapper.appendChild(loader);
@@ -865,44 +863,44 @@ function setupVideoControls(video, id, loader, bigPlay) {
 }
 
 function toggleFullscreen(video) {
-  if (!document.fullscreenElement) {
-    // Essayer d'abord sur la vidéo elle-même
-    if (video.requestFullscreen) {
-      video.requestFullscreen().catch(function(err) {
-        console.warn('Video fullscreen failed:', err);
-        // Fallback: essayer sur le slide parent
-        var slide = video.closest('.video-slide');
-        if (slide && slide.requestFullscreen) {
-          slide.requestFullscreen();
-        }
-      });
-    } else if (video.webkitRequestFullscreen) {
-      video.webkitRequestFullscreen();
-    } else if (video.msRequestFullscreen) {
-      video.msRequestFullscreen();
-    }
+  var elem = video;
+
+  function enterFs(el) {
+    if (el.requestFullscreen) return el.requestFullscreen();
+    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+    if (el.mozRequestFullScreen) return el.mozRequestFullScreen();
+    if (el.msRequestFullscreen) return el.msRequestFullscreen();
+    return Promise.reject('Fullscreen not supported');
+  }
+
+  function exitFs() {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+  }
+
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+    enterFs(elem).catch(function(err) {
+      console.warn('Fullscreen error:', err);
+    });
   } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if (document.msExitFullscreen) document.msExitFullscreen();
+    exitFs();
   }
 }
 
-// Mettre à jour l'icône fullscreen quand on entre/sort
-document.addEventListener('fullscreenchange', function() {
-  var isFs = !!document.fullscreenElement;
+function updateFullscreenIcon() {
+  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
   var btns = document.querySelectorAll('[id^="fullscreen-"]');
-  btns.forEach(function(btn) {
-    btn.innerHTML = isFs ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
-  });
-});
-document.addEventListener('webkitfullscreenchange', function() {
-  var isFs = !!document.webkitFullscreenElement;
-  var btns = document.querySelectorAll('[id^="fullscreen-"]');
-  btns.forEach(function(btn) {
-    btn.innerHTML = isFs ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
-  });
-});
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].innerHTML = isFs ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+  }
+}
+
+document.addEventListener('fullscreenchange', updateFullscreenIcon);
+document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
 
 function updateVolumeIcon(vol, btn) {
   if (!btn) return;
