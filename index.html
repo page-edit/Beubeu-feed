@@ -14,11 +14,13 @@ body {
   color: #fafafa; 
   margin: 0; 
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 4px 8px;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -28,6 +30,7 @@ body {
   scroll-snap-type: y mandatory; 
   scrollbar-width: none; 
   position: relative;
+  height: 100%;
 }
 .tiktok-feed::-webkit-scrollbar { display: none; }
 .tiktok-feed .video-slide {
@@ -53,11 +56,15 @@ body {
   overflow: hidden;
   min-height: 0;
   background: #000;
+  width: 100%;
+  height: 100%;
 }
 .video-wrapper video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  inset: 0;
 }
 
 .video-player { 
@@ -77,16 +84,18 @@ body {
 }
 
 .demo-container { 
+  width: 100%;
   max-width: 420px; 
   margin: 0 auto; 
-  border: 10px solid #18181b; 
-  border-radius: 40px; 
+  border: 8px solid #18181b; 
+  border-radius: 32px; 
   overflow: hidden; 
   position: relative; 
   flex: 1;
   min-height: 0;
   display: flex; 
   flex-direction: column;
+  background: #000;
 }
 
 .nav-tab { 
@@ -125,15 +134,18 @@ body {
 
 /* Video Controls */
 .video-controls {
-  position: relative;
-  padding: 10px 14px 12px;
-  background: #0a0a0a;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 12px 10px;
+  background: rgba(10,10,10,0.85);
   display: flex; 
   flex-direction: column; 
-  gap: 8px;
-  flex-shrink: 0;
-  border-top: 1px solid #27272a;
+  gap: 6px;
+  border-top: 1px solid rgba(39,39,42,0.5);
   z-index: 25;
+  backdrop-filter: blur(4px);
 }
 .controls-row { 
   display: flex; 
@@ -295,11 +307,11 @@ body {
   right: 0; 
   z-index: 50;
   background: rgba(0,0,0,0.85); 
-  padding: 8px 14px;
+  padding: 6px 12px;
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
-  height: 40px;
+  height: 36px;
 }
 .app-header .logo-text { 
   font-weight: 700; 
@@ -323,7 +335,7 @@ body {
 
 .video-info { 
   position: absolute; 
-  bottom: 12px; 
+  bottom: 72px; 
   left: 12px; 
   right: 70px; 
   z-index: 20; 
@@ -332,7 +344,7 @@ body {
 .video-actions-right { 
   position: absolute; 
   right: 10px; 
-  bottom: 12px; 
+  bottom: 72px; 
   display: flex; 
   flex-direction: column; 
   align-items: center; 
@@ -404,23 +416,37 @@ body {
   display: block; 
 }
 
-/* Fullscreen styles */
-:fullscreen {
-  background: #000 !important;
-}
-:-webkit-full-screen {
-  background: #000 !important;
-}
-:fullscreen .video-wrapper,
-:-webkit-full-screen .video-wrapper {
-  width: 100vw !important;
+/* Expanded video mode (simple fullscreen) */
+.video-slide.expanded {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
   height: 100vh !important;
+  width: 100vw !important;
+  max-width: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: #000 !important;
 }
-:fullscreen video,
-:-webkit-full-screen video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
+.video-slide.expanded .video-wrapper {
+  height: 100vh !important;
+  width: 100vw !important;
+}
+.video-slide.expanded .video-controls {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 210 !important;
+}
+.video-slide.expanded .video-info {
+  bottom: 80px !important;
+}
+.video-slide.expanded .video-actions-right {
+  bottom: 80px !important;
+}
+.video-slide.expanded .app-header {
+  display: none !important;
 }
 
 @keyframes devToastIn {
@@ -438,21 +464,40 @@ body {
     border-radius: 24px;
   }
   .app-header {
-    padding: 6px 10px;
-    height: 36px;
+    padding: 4px 10px;
+    height: 32px;
   }
-  .tiktok-feed {
-    padding-top: 36px !important;
+  .video-controls {
+    padding: 6px 10px 8px;
+  }
+  .video-info {
+    bottom: 64px;
+  }
+  .video-actions-right {
+    bottom: 64px;
   }
 }
 
 @media (max-height: 600px) {
-  body {
-    padding: 4px;
-  }
   .demo-container {
     border-width: 4px;
     border-radius: 16px;
+  }
+  .app-header {
+    padding: 2px 8px;
+    height: 28px;
+  }
+  .app-header .logo-text {
+    font-size: 13px;
+  }
+  .video-controls {
+    padding: 4px 8px 6px;
+  }
+  .video-info {
+    bottom: 56px;
+  }
+  .video-actions-right {
+    bottom: 56px;
   }
 }
 </style>
@@ -472,7 +517,7 @@ body {
 </div>
 
 <!-- Navigation -->
-<div class="max-w-[520px] w-full mx-auto px-4 mb-1 flex-shrink-0">
+<div class="w-full px-3 mb-1 flex-shrink-0" style="max-width: 420px; margin: 0 auto;">
   <div class="flex bg-zinc-900 rounded-3xl p-1 text-sm" id="nav-container">
     <button onclick="showSection('feed')" class="nav-tab flex-1 py-2 px-4 rounded-3xl active" id="nav-feed">Feed</button>
     <button onclick="showSection('profile')" class="nav-tab flex-1 py-2 px-4 rounded-3xl hidden" id="nav-profile">Profil</button>
@@ -484,7 +529,7 @@ body {
 <div class="max-w-[520px] mx-auto px-4 pb-2 flex-1 flex flex-col overflow-hidden" style="width: 100%; min-height: 0;">
 
   <!-- FEED -->
-  <div id="section-feed" class="section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+  <div id="section-feed" class="section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; height: 100%;">
     <div class="demo-container bg-black">
       <div class="app-header">
         <div class="flex items-center gap-2">
@@ -497,7 +542,7 @@ body {
           <i class="fab fa-discord" style="font-size:10px;"></i> Discord
         </a>
       </div>
-      <div class="tiktok-feed" id="tiktok-feed" style="flex: 1; min-height: 0; overflow-y: auto; padding-top: 40px;"></div>
+      <div class="tiktok-feed" id="tiktok-feed" style="flex: 1; min-height: 0; overflow-y: scroll;"></div>
 
       <!-- Limit Overlay (gratuit) -->
       <div id="limit-overlay" class="limit-overlay hidden">
@@ -516,7 +561,7 @@ body {
   </div>
 
   <!-- PROFILE -->
-  <div id="section-profile" class="section" style="flex: 1; overflow-y: auto;">
+  <div id="section-profile" class="section" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="flex flex-col items-center">
         <div class="relative">
@@ -545,7 +590,7 @@ body {
   </div>
 
   <!-- SUBSCRIPTION -->
-  <div id="section-subscription" class="section" style="flex: 1; overflow-y: auto;">
+  <div id="section-subscription" class="section" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="text-center mb-8">
         <div class="text-emerald-400 text-sm font-semibold">PREMIUM</div>
@@ -593,7 +638,7 @@ body {
   </div>
 
   <!-- UPLOAD -->
-  <div id="section-upload" class="section" style="flex: 1; overflow-y: auto;">
+  <div id="section-upload" class="section" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="mb-6">
         <div class="font-bold text-xl">Publier une vidéo</div>
@@ -1364,46 +1409,33 @@ function updateVolumeIcon(vol, btn) {
 }
 
 function toggleFullscreen(video) {
-  var elem = video.parentElement || video;
+  var slide = video.closest('.video-slide');
+  if (!slide) return;
 
-  function enterFs(el) {
-    if (el.requestFullscreen) return el.requestFullscreen();
-    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
-    if (el.mozRequestFullScreen) return el.mozRequestFullScreen();
-    if (el.msRequestFullscreen) return el.msRequestFullscreen();
-    return Promise.reject('Fullscreen not supported');
-  }
-
-  function exitFs() {
-    if (document.exitFullscreen) return document.exitFullscreen();
-    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
-    if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
-    if (document.msExitFullscreen) return document.msExitFullscreen();
-  }
-
-  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-    enterFs(elem).catch(function(err) {
-      console.warn('Fullscreen error:', err);
-    });
+  if (slide.classList.contains('expanded')) {
+    slide.classList.remove('expanded');
+    updateFullscreenIcon(false);
   } else {
-    exitFs().catch(function(err) {
-      console.warn('Exit fullscreen error:', err);
+    // Remove expanded from any other slide
+    document.querySelectorAll('.video-slide.expanded').forEach(function(s) {
+      s.classList.remove('expanded');
     });
+    slide.classList.add('expanded');
+    updateFullscreenIcon(true);
   }
 }
 
-function updateFullscreenIcon() {
-  var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+function updateFullscreenIcon(isExpanded) {
+  if (isExpanded === undefined) {
+    isExpanded = document.querySelector('.video-slide.expanded') !== null;
+  }
   var btns = document.querySelectorAll('[id^="fullscreen-"]');
   for (var i = 0; i < btns.length; i++) {
-    if (btns[i]) btns[i].innerHTML = isFs ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+    if (btns[i]) btns[i].innerHTML = isExpanded ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
   }
 }
 
-document.addEventListener('fullscreenchange', updateFullscreenIcon);
-document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
-document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+/* Expanded mode uses CSS classes, no native fullscreen events needed */
 
 function setupAutoplayObserver() {
   const slides = document.querySelectorAll('.video-slide video');
@@ -1718,6 +1750,17 @@ function checkDevCode() {
 
 document.getElementById('dev-code-modal').addEventListener('click', function(e) {
   if (e.target === this) closeDevCodeModal();
+});
+
+// Exit expanded video mode on ESC key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var expanded = document.querySelector('.video-slide.expanded');
+    if (expanded) {
+      expanded.classList.remove('expanded');
+      updateFullscreenIcon(false);
+    }
+  }
 });
 
 /* ========== INIT ========== */
