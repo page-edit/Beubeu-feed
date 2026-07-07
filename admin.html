@@ -379,9 +379,11 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 
 <script>
 const DB_NAME = 'beubeuland_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_VIDEOS = 'videos';
 const STORE_USERS = 'users';
+const STORE_LIKES = 'likes';
+const STORE_COMMENTS = 'comments';
 const STORE_WARNINGS = 'warnings';
 
 function openDB() {
@@ -391,10 +393,13 @@ function openDB() {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_VIDEOS)) db.createObjectStore(STORE_VIDEOS, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORE_USERS)) db.createObjectStore(STORE_USERS, { keyPath: 'userId' });
+      if (!db.objectStoreNames.contains(STORE_LIKES)) db.createObjectStore(STORE_LIKES, { keyPath: 'id', autoIncrement: true });
+      if (!db.objectStoreNames.contains(STORE_COMMENTS)) db.createObjectStore(STORE_COMMENTS, { keyPath: 'id', autoIncrement: true });
       if (!db.objectStoreNames.contains(STORE_WARNINGS)) db.createObjectStore(STORE_WARNINGS, { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    req.onblocked = () => reject(new Error('IndexedDB blocked'));
   });
 }
 
@@ -402,9 +407,14 @@ async function saveToStore(store, data) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put(data);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(new Error('Transaction aborted'));
+    try {
+      tx.objectStore(store).put(data);
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -415,6 +425,7 @@ async function getAllFromStore(store) {
     const req = tx.objectStore(store).getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(req.error);
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -422,9 +433,14 @@ async function deleteFromStore(store, key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).delete(key);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(new Error('Transaction aborted'));
+    try {
+      tx.objectStore(store).delete(key);
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -440,9 +456,11 @@ async function deleteVideo(id) { await deleteFromStore(STORE_VIDEOS, id); }
 
 function showTab(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  document.getElementById('admin-' + tab).classList.remove('hidden');
+  const target = document.getElementById('admin-' + tab);
+  if (target) target.classList.remove('hidden');
   document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  const tabBtn = document.getElementById('tab-' + tab);
+  if (tabBtn) tabBtn.classList.add('active');
   if (tab === 'users') loadUsers();
   if (tab === 'videos') loadAllVideos();
   if (tab === 'warnings') loadWarnings();
@@ -450,13 +468,17 @@ function showTab(tab) {
 }
 
 async function updateStats() {
-  const users = await getAllFromStore(STORE_USERS);
-  const videos = await getAllFromStore(STORE_VIDEOS);
-  const warnings = await getAllFromStore(STORE_WARNINGS);
-  document.getElementById('stat-users').textContent = users.length;
-  document.getElementById('stat-premium').textContent = users.filter(u => u.isPremium).length;
-  document.getElementById('stat-videos').textContent = videos.length;
-  document.getElementById('stat-warnings').textContent = warnings.length;
+  try {
+    const users = await getAllFromStore(STORE_USERS);
+    const videos = await getAllFromStore(STORE_VIDEOS);
+    const warnings = await getAllFromStore(STORE_WARNINGS);
+    document.getElementById('stat-users').textContent = users.length;
+    document.getElementById('stat-premium').textContent = users.filter(u => u.isPremium).length;
+    document.getElementById('stat-videos').textContent = videos.length;
+    document.getElementById('stat-warnings').textContent = warnings.length;
+  } catch (err) {
+    console.error('Erreur stats:', err);
+  }
 }
 
 function handleAdminFile(input) {
@@ -464,6 +486,7 @@ function handleAdminFile(input) {
   const file = input.files[0];
   const maxBytes = 500 * 1024 * 1024;
   if (file.size > maxBytes) { alert('Fichier trop volumineux (max 500MB)'); input.value = ''; return; }
+  if (!file.type.startsWith('video/')) { alert('Veuillez sélectionner un fichier vidéo'); input.value = ''; return; }
   document.getElementById('admin-dropzone').classList.add('hidden');
   document.getElementById('admin-form').classList.remove('hidden');
   const titleInput = document.getElementById('admin-title');
@@ -482,19 +505,18 @@ async function publishAdminVideo() {
   progressEl.style.display = 'block'; progressEl.textContent = 'Lecture du fichier...';
 
   try {
-    // Convertir le fichier en ArrayBuffer (même format que le client)
     const arrayBuffer = await file.arrayBuffer();
     progressEl.textContent = 'Enregistrement...';
 
     await saveVideo({
-      id: Date.now(), 
-      title: title, 
+      id: Date.now(),
+      title: title,
       description: document.getElementById('admin-desc').value,
       fileData: arrayBuffer,
       fileType: file.type,
       fileName: file.name,
-      authorId: 'admin', 
-      authorName: 'Admin', 
+      authorId: 'admin',
+      authorName: 'Admin',
       isAdmin: true,
       created_at: new Date().toISOString()
     });
@@ -508,7 +530,8 @@ async function publishAdminVideo() {
     progressEl.style.display = 'none';
     updateStats();
   } catch (err) {
-    console.error('Erreur :', err); alert('❌ Erreur lors de la publication');
+    console.error('Erreur :', err);
+    alert('❌ Erreur lors de la publication: ' + (err.message || 'Inconnue'));
     btn.disabled = false; btn.textContent = 'Publier sur le feed';
     progressEl.style.display = 'none';
   }
@@ -516,95 +539,109 @@ async function publishAdminVideo() {
 
 async function loadUsers() {
   const container = document.getElementById('users-list');
-  const users = await getAllFromStore(STORE_USERS);
-  const videos = await getAllFromStore(STORE_VIDEOS);
-  const warnings = await getAllFromStore(STORE_WARNINGS);
+  if (!container) return;
 
-  if (users.length === 0) {
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i>Aucun utilisateur inscrit</div>';
-    return;
-  }
+  try {
+    const users = await getAllFromStore(STORE_USERS);
+    const videos = await getAllFromStore(STORE_VIDEOS);
+    const warnings = await getAllFromStore(STORE_WARNINGS);
 
-  let html = '<table class="data-table"><thead><tr>';
-  html += '<th>Utilisateur</th><th>Statut</th><th>Vidéos</th><th>Avertissements</th><th>Inscrit le</th><th>Actions</th>';
-  html += '</tr></thead><tbody>';
+    if (users.length === 0) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i>Aucun utilisateur inscrit</div>';
+      return;
+    }
 
-  users.forEach(u => {
-    const userVideos = videos.filter(v => v.authorId === u.userId);
-    const userWarnings = warnings.filter(w => w.userId === u.userId);
-    const badgeClass = u.isPremium ? 'badge-premium' : 'badge-free';
-    const badgeText = u.isPremium ? 'Premium' : 'Gratuit';
-    const avatarContent = u.avatar ? `<img src="${escapeHtml(u.avatar)}" alt="">` : (u.name || 'B').charAt(0).toUpperCase();
+    let html = '<table class="data-table"><thead><tr>';
+    html += '<th>Utilisateur</th><th>Statut</th><th>Vidéos</th><th>Avertissements</th><th>Inscrit le</th><th>Actions</th>';
+    html += '</tr></thead><tbody>';
 
-    html += `<tr>
-      <td>
-        <div class="user-cell">
-          <div class="user-avatar">${avatarContent}</div>
-          <div class="user-info">
-            <span class="user-name">${escapeHtml(u.name || 'Anonyme')}</span>
-            <span class="user-id">${u.userId}</span>
+    users.forEach(u => {
+      const userVideos = videos.filter(v => v.authorId === u.userId);
+      const userWarnings = warnings.filter(w => w.userId === u.userId);
+      const badgeClass = u.isPremium ? 'badge-premium' : 'badge-free';
+      const badgeText = u.isPremium ? 'Premium' : 'Gratuit';
+      const avatarContent = u.avatar ? `<img src="${escapeHtml(u.avatar)}" alt="">` : (u.name || 'B').charAt(0).toUpperCase();
+
+      html += `<tr>
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar">${avatarContent}</div>
+            <div class="user-info">
+              <span class="user-name">${escapeHtml(u.name || 'Anonyme')}</span>
+              <span class="user-id">${u.userId}</span>
+            </div>
           </div>
-        </div>
-      </td>
-      <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-      <td>${userVideos.length}</td>
-      <td>${userWarnings.length}</td>
-      <td>${new Date(u.joinedAt).toLocaleDateString('fr-FR')}</td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="viewUserVideos('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-view" title="Voir les vidéos"><i class="fas fa-eye"></i></button>
-          <button onclick="openWarningModal('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
-        </div>
-      </td>
-    </tr>`;
-  });
+        </td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td>${userVideos.length}</td>
+        <td>${userWarnings.length}</td>
+        <td>${u.joinedAt ? new Date(u.joinedAt).toLocaleDateString('fr-FR') : '-'}</td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="viewUserVideos('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-view" title="Voir les vidéos"><i class="fas fa-eye"></i></button>
+            <button onclick="openWarningModal('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    });
 
-  html += '</tbody></table>';
-  container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
+    html += '</tbody></table>';
+    container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
+  } catch (err) {
+    console.error('Erreur chargement utilisateurs:', err);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
+  }
 }
 
 async function loadAllVideos() {
   const container = document.getElementById('all-videos-list');
-  const videos = await getVideos();
-  const users = await getAllFromStore(STORE_USERS);
+  if (!container) return;
 
-  if (videos.length === 0) {
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i>Aucune vidéo publiée</div>';
-    return;
+  try {
+    const videos = await getVideos();
+    const users = await getAllFromStore(STORE_USERS);
+
+    if (videos.length === 0) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i>Aucune vidéo publiée</div>';
+      return;
+    }
+
+    let html = '<table class="data-table"><thead><tr>';
+    html += '<th>Vidéo</th><th>Auteur</th><th>Date</th><th>Actions</th>';
+    html += '</tr></thead><tbody>';
+
+    videos.forEach(v => {
+      const author = users.find(u => u.userId === v.authorId);
+      const authorName = v.authorName || (author ? author.name : 'Inconnu');
+      const isAdmin = v.isAdmin || v.authorId === 'admin';
+      const authorBadge = isAdmin ? '<span class="badge badge-admin" style="margin-left:6px;">Admin</span>' : '';
+
+      html += `<tr>
+        <td>
+          <div style="font-weight: 600; color: #fafafa;">${escapeHtml(v.title)}</div>
+          <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
+        </td>
+        <td>
+          <span style="color: ${isAdmin ? '#60a5fa' : '#d4d4d8'}; font-weight: 500;">@${escapeHtml(authorName)}</span>
+          ${authorBadge}
+        </td>
+        <td style="white-space: nowrap;">${v.created_at ? new Date(v.created_at).toLocaleDateString('fr-FR') : '-'}</td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
+            ${v.authorId !== 'admin' ? `<button onclick="openWarningModal('${v.authorId}', '${escapeHtml(authorName)}')" class="btn-icon btn-warn" title="Avertir l'auteur"><i class="fas fa-exclamation-triangle"></i></button>` : ''}
+            <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
+  } catch (err) {
+    console.error('Erreur chargement vidéos:', err);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
   }
-
-  let html = '<table class="data-table"><thead><tr>';
-  html += '<th>Vidéo</th><th>Auteur</th><th>Date</th><th>Actions</th>';
-  html += '</tr></thead><tbody>';
-
-  videos.forEach(v => {
-    const author = users.find(u => u.userId === v.authorId);
-    const authorName = v.authorName || (author ? author.name : 'Inconnu');
-    const isAdmin = v.isAdmin || v.authorId === 'admin';
-    const authorBadge = isAdmin ? '<span class="badge badge-admin" style="margin-left:6px;">Admin</span>' : '';
-
-    html += `<tr>
-      <td>
-        <div style="font-weight: 600; color: #fafafa;">${escapeHtml(v.title)}</div>
-        <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
-      </td>
-      <td>
-        <span style="color: ${isAdmin ? '#60a5fa' : '#d4d4d8'}; font-weight: 500;">@${escapeHtml(authorName)}</span>
-        ${authorBadge}
-      </td>
-      <td style="white-space: nowrap;">${new Date(v.created_at).toLocaleDateString('fr-FR')}</td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
-          ${v.authorId !== 'admin' ? `<button onclick="openWarningModal('${v.authorId}', '${escapeHtml(authorName)}')" class="btn-icon btn-warn" title="Avertir l'auteur"><i class="fas fa-exclamation-triangle"></i></button>` : ''}
-          <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
-        </div>
-      </td>
-    </tr>`;
-  });
-
-  html += '</tbody></table>';
-  container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
 }
 
 async function deleteAdminVideo(id) {
@@ -614,49 +651,54 @@ async function deleteAdminVideo(id) {
     loadAllVideos();
     updateStats();
   } catch (err) {
-    console.error('Erreur :', err);
-    alert('❌ Erreur lors de la suppression');
+    console.error('Erreur suppression:', err);
+    alert('❌ Erreur lors de la suppression: ' + (err.message || 'Inconnue'));
   }
 }
 
 async function viewUserVideos(userId, userName) {
-  const videos = await getAllFromStore(STORE_VIDEOS);
-  const userVideos = videos.filter(v => v.authorId === userId).sort((a, b) => b.id - a.id);
+  try {
+    const videos = await getAllFromStore(STORE_VIDEOS);
+    const userVideos = videos.filter(v => v.authorId === userId).sort((a, b) => b.id - a.id);
 
-  if (userVideos.length === 0) {
-    alert(userName + " n'a publié aucune vidéo.");
-    return;
+    if (userVideos.length === 0) {
+      alert(userName + " n'a publié aucune vidéo.");
+      return;
+    }
+
+    showTab('videos');
+    const container = document.getElementById('all-videos-list');
+
+    let html = `<div style="padding: 16px 20px; border-bottom: 1px solid #27272a; display: flex; align-items: center; gap: 12px;">`;
+    html += `<button onclick="loadAllVideos()" class="btn-icon btn-view" title="Retour"><i class="fas fa-arrow-left"></i></button>`;
+    html += `<span style="font-weight: 700; font-size: 14px;">Vidéos de ${escapeHtml(userName)}</span>`;
+    html += `<span style="font-size: 12px; color: #71717a;">(${userVideos.length})</span>`;
+    html += `</div>`;
+    html += '<table class="data-table"><thead><tr><th>Vidéo</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+
+    userVideos.forEach(v => {
+      html += `<tr>
+        <td>
+          <div style="font-weight: 600;">${escapeHtml(v.title)}</div>
+          <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
+        </td>
+        <td style="white-space: nowrap;">${v.created_at ? new Date(v.created_at).toLocaleDateString('fr-FR') : '-'}</td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
+            <button onclick="openWarningModal('${v.authorId}', '${escapeHtml(userName)}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
+            <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Erreur vue utilisateur:', err);
+    alert('❌ Erreur de chargement');
   }
-
-  showTab('videos');
-  const container = document.getElementById('all-videos-list');
-
-  let html = `<div style="padding: 16px 20px; border-bottom: 1px solid #27272a; display: flex; align-items: center; gap: 12px;">`;
-  html += `<button onclick="loadAllVideos()" class="btn-icon btn-view" title="Retour"><i class="fas fa-arrow-left"></i></button>`;
-  html += `<span style="font-weight: 700; font-size: 14px;">Vidéos de ${escapeHtml(userName)}</span>`;
-  html += `<span style="font-size: 12px; color: #71717a;">(${userVideos.length})</span>`;
-  html += `</div>`;
-  html += '<table class="data-table"><thead><tr><th>Vidéo</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
-
-  userVideos.forEach(v => {
-    html += `<tr>
-      <td>
-        <div style="font-weight: 600;">${escapeHtml(v.title)}</div>
-        <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
-      </td>
-      <td style="white-space: nowrap;">${new Date(v.created_at).toLocaleDateString('fr-FR')}</td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
-          <button onclick="openWarningModal('${v.authorId}', '${escapeHtml(userName)}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
-          <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
-        </div>
-      </td>
-    </tr>`;
-  });
-
-  html += '</tbody></table>';
-  container.innerHTML = html;
 }
 
 function openWarningModal(userId, userName) {
@@ -686,98 +728,119 @@ async function sendWarning() {
       loadWarnings();
     }
   } catch (err) {
-    console.error('Erreur :', err);
-    alert('❌ Erreur lors de l\'envoi');
+    console.error('Erreur envoi avertissement:', err);
+    alert('❌ Erreur lors de l\'envoi: ' + (err.message || 'Inconnue'));
   }
 }
 
 async function loadWarnings() {
   const container = document.getElementById('warnings-list');
-  const warnings = await getAllFromStore(STORE_WARNINGS);
-  const users = await getAllFromStore(STORE_USERS);
+  if (!container) return;
 
-  if (warnings.length === 0) {
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun avertissement envoyé</div>';
-    return;
-  }
+  try {
+    const warnings = await getAllFromStore(STORE_WARNINGS);
+    const users = await getAllFromStore(STORE_USERS);
 
-  warnings.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+    if (warnings.length === 0) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun avertissement envoyé</div>';
+      return;
+    }
 
-  let html = '';
-  warnings.forEach(w => {
-    const user = users.find(u => u.userId === w.userId);
-    const userName = user ? user.name : w.userId;
-    const statusClass = w.seen ? 'seen' : 'unseen';
-    const statusText = w.seen ? 'Vu par l\'utilisateur' : 'Non vu';
+    warnings.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
 
-    html += `<div class="warning-item">
-      <div class="warning-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="warning-user">${escapeHtml(userName)}</span>
-          <span class="warning-status ${statusClass}">${statusText}</span>
+    let html = '';
+    warnings.forEach(w => {
+      const user = users.find(u => u.userId === w.userId);
+      const userName = user ? user.name : w.userId;
+      const statusClass = w.seen ? 'seen' : 'unseen';
+      const statusText = w.seen ? 'Vu par l\'utilisateur' : 'Non vu';
+
+      html += `<div class="warning-item">
+        <div class="warning-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="warning-user">${escapeHtml(userName)}</span>
+            <span class="warning-status ${statusClass}">${statusText}</span>
+          </div>
+          <span class="warning-date">${w.sentAt ? new Date(w.sentAt).toLocaleDateString('fr-FR') + ' à ' + new Date(w.sentAt).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : '-'}</span>
         </div>
-        <span class="warning-date">${new Date(w.sentAt).toLocaleDateString('fr-FR')} à ${new Date(w.sentAt).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</span>
-      </div>
-      <div class="warning-msg">${escapeHtml(w.message)}</div>
-    </div>`;
-  });
+        <div class="warning-msg">${escapeHtml(w.message)}</div>
+      </div>`;
+    });
 
-  container.innerHTML = html;
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Erreur chargement avertissements:', err);
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
+  }
 }
 
 
 async function previewVideo(videoId) {
-  const videos = await getAllFromStore(STORE_VIDEOS);
-  const video = videos.find(v => v.id === videoId);
-  if (!video) { alert('Vidéo introuvable'); return; }
+  try {
+    const videos = await getAllFromStore(STORE_VIDEOS);
+    const video = videos.find(v => v.id === videoId);
+    if (!video) { alert('Vidéo introuvable'); return; }
 
-  const videoEl = document.getElementById('preview-video');
+    const videoEl = document.getElementById('preview-video');
+    if (!videoEl) { alert('Erreur interne'); return; }
 
-  if (video.fileData) {
-    try {
-      const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
-      const url = URL.createObjectURL(blob);
-      videoEl.src = url;
-    } catch (e) {
-      console.error('Erreur blob:', e);
-      alert('❌ Impossible de lire la vidéo');
+    // Clean up previous object URL
+    if (videoEl.dataset.objectUrl) {
+      URL.revokeObjectURL(videoEl.dataset.objectUrl);
+    }
+
+    if (video.fileData && video.fileData.byteLength > 0) {
+      try {
+        const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        videoEl.dataset.objectUrl = url;
+        videoEl.src = url;
+      } catch (e) {
+        console.error('Erreur blob:', e);
+        alert('❌ Impossible de lire la vidéo');
+        return;
+      }
+    } else {
+      alert('❌ Aucune donnée vidéo');
       return;
     }
-  } else if (video.fileBlob) {
-    // Compatibilité avec anciennes vidéos (fileBlob)
-    try {
-      const url = URL.createObjectURL(video.fileBlob);
-      videoEl.src = url;
-    } catch (e) {
-      alert('❌ Format de vidéo incompatible');
-      return;
-    }
-  } else {
-    alert('❌ Aucune donnée vidéo');
-    return;
+
+    document.getElementById('video-preview-modal').classList.add('visible');
+    videoEl.play().catch(() => {});
+  } catch (err) {
+    console.error('Erreur preview:', err);
+    alert('❌ Erreur de lecture');
   }
-
-  document.getElementById('video-preview-modal').classList.add('visible');
-  videoEl.play().catch(() => {});
 }
 
 function closeVideoPreview() {
   const videoEl = document.getElementById('preview-video');
-  videoEl.pause();
-  videoEl.src = '';
+  if (videoEl) {
+    videoEl.pause();
+    if (videoEl.dataset.objectUrl) {
+      URL.revokeObjectURL(videoEl.dataset.objectUrl);
+      delete videoEl.dataset.objectUrl;
+    }
+    videoEl.src = '';
+  }
   document.getElementById('video-preview-modal').classList.remove('visible');
 }
 
 function escapeHtml(str) {
+  if (str == null) return '';
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = String(str);
   return div.innerHTML;
 }
 
 window.onload = function() {
-  document.getElementById('admin-upload').classList.remove('hidden');
-  document.getElementById('tab-upload').classList.add('active');
-  updateStats();
+  try {
+    document.getElementById('admin-upload').classList.remove('hidden');
+    document.getElementById('tab-upload').classList.add('active');
+    updateStats();
+  } catch (err) {
+    console.error('Erreur init:', err);
+  }
 }
 </script>
 <!-- Video Preview Modal -->
