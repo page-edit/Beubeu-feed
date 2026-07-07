@@ -8,15 +8,33 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 * { box-sizing: border-box; }
-body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: #fafafa; margin: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: #fafafa; margin: 0; overflow: hidden; height: 100vh; }
 
-.tiktok-feed { height: 100vh; max-height: 640px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+.tiktok-feed { 
+  flex: 1;
+  overflow-y: scroll; 
+  scroll-snap-type: y mandatory; 
+  scrollbar-width: none; 
+}
 .tiktok-feed::-webkit-scrollbar { display: none; }
-.video-slide { scroll-snap-align: start; height: 100vh; max-height: 640px; width: 100%; position: relative; background: #000; }
+.video-slide { 
+  scroll-snap-align: start; 
+  height: 100%; 
+  width: 100%; 
+  position: relative; 
+  background: #000; 
+  display: flex;
+  flex-direction: column;
+}
+.video-slide .video-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
 .video-player { 
   width: 100%; 
   height: 100%; 
-  max-height: 640px; 
   object-fit: contain; 
   background: #000; 
   display: block;
@@ -37,10 +55,12 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 
 /* Video Controls */
 .video-controls {
-  position: absolute; bottom: 0; left: 0; right: 0; z-index: 25;
-  padding: 12px 14px 16px;
-  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.15) 80%, transparent 100%);
+  position: relative;
+  padding: 10px 14px 12px;
+  background: #0a0a0a;
   display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid #27272a;
 }
 .controls-row { display: flex; align-items: center; gap: 10px; }
 .controls-row button {
@@ -72,8 +92,8 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 
 .big-play-btn {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;
-  width: 72px; height: 72px; background: rgba(0,0,0,0.6); border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28px;
+  width: 64px; height: 64px; background: rgba(0,0,0,0.6); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px;
   opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
   backdrop-filter: blur(4px);
   border: 2px solid rgba(255,255,255,0.2);
@@ -82,8 +102,8 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 
 .app-header {
   position: absolute; top: 0; left: 0; right: 0; z-index: 50;
-  background: rgba(0,0,0,0.85); padding: 10px 14px;
-  display: flex; justify-content: space-between; align-items: center; height: 44px;
+  background: rgba(0,0,0,0.85); padding: 8px 14px;
+  display: flex; justify-content: space-between; align-items: center; height: 40px;
 }
 .app-header .logo-text { font-weight: 700; font-size: 15px; }
 .app-header .discord-btn {
@@ -93,8 +113,24 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 }
 .app-header .discord-btn:hover { background: #4752C4; }
 
-.video-info { position: absolute; bottom: 72px; left: 12px; right: 60px; z-index: 20; }
-.video-actions-right { position: absolute; right: 10px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 30; }
+.video-info { 
+  position: absolute; 
+  bottom: 12px; 
+  left: 12px; 
+  right: 70px; 
+  z-index: 20; 
+  pointer-events: none;
+}
+.video-actions-right { 
+  position: absolute; 
+  right: 10px; 
+  bottom: 12px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 14px; 
+  z-index: 30; 
+}
 
 .profile-edit-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
@@ -121,6 +157,33 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 
 .section { display: none; }
 .section.active { display: block; }
+
+/* Fullscreen styles */
+.video-slide:fullscreen {
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+.video-slide:fullscreen .video-wrapper {
+  flex: 1;
+}
+.video-slide:fullscreen .video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%);
+  border-top: none;
+}
+.video-slide:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+.video-slide:-webkit-full-screen .video-wrapper {
+  flex: 1;
+}
+
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -128,33 +191,33 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 <body>
 
 <!-- Header -->
-<div class="max-w-[520px] mx-auto px-4 pt-4 pb-3">
+<div class="max-w-[520px] mx-auto px-4 pt-2 pb-2 flex-shrink-0">
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center">
-        <span class="text-black font-black text-xl tracking-[-1px]">B</span>
+      <div class="w-7 h-7 bg-white rounded-xl flex items-center justify-center">
+        <span class="text-black font-black text-lg tracking-[-1px]">B</span>
       </div>
-      <span class="font-bold text-2xl tracking-tighter">beubeuland</span>
+      <span class="font-bold text-xl tracking-tighter">beubeuland</span>
     </div>
-    <div class="px-2.5 py-0.5 bg-red-600 text-[10px] font-bold rounded-full">18+</div>
+    <div class="px-2 py-0.5 bg-red-600 text-[10px] font-bold rounded-full">18+</div>
   </div>
 </div>
 
 <!-- Navigation -->
-<div class="max-w-[520px] mx-auto px-4 mb-3">
+<div class="max-w-[520px] mx-auto px-4 mb-2 flex-shrink-0">
   <div class="flex bg-zinc-900 rounded-3xl p-1 text-sm" id="nav-container">
-    <button onclick="showSection('feed')" class="nav-tab flex-1 py-2.5 px-4 rounded-3xl active" id="nav-feed">Feed</button>
-    <button onclick="showSection('profile')" class="nav-tab flex-1 py-2.5 px-4 rounded-3xl hidden" id="nav-profile">Profil</button>
-    <button onclick="showSection('subscription')" class="nav-tab flex-1 py-2.5 px-4 rounded-3xl" id="nav-subscription">Premium</button>
-    <button onclick="showSection('upload')" class="nav-tab flex-1 py-2.5 px-4 rounded-3xl hidden" id="nav-upload">Upload</button>
+    <button onclick="showSection('feed')" class="nav-tab flex-1 py-2 px-4 rounded-3xl active" id="nav-feed">Feed</button>
+    <button onclick="showSection('profile')" class="nav-tab flex-1 py-2 px-4 rounded-3xl hidden" id="nav-profile">Profil</button>
+    <button onclick="showSection('subscription')" class="nav-tab flex-1 py-2 px-4 rounded-3xl" id="nav-subscription">Premium</button>
+    <button onclick="showSection('upload')" class="nav-tab flex-1 py-2 px-4 rounded-3xl hidden" id="nav-upload">Upload</button>
   </div>
 </div>
 
-<div class="max-w-[520px] mx-auto px-4 pb-6">
+<div class="max-w-[520px] mx-auto px-4 pb-2 flex-1 flex flex-col overflow-hidden">
 
   <!-- FEED -->
   <div id="section-feed" class="section active">
-    <div class="demo-container bg-black" style="height: 640px; min-height: 640px; position: relative; overflow: hidden;">
+    <div class="demo-container bg-black" style="height: 85vh; max-height: 580px; min-height: 480px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
       <div class="app-header">
         <div class="flex items-center gap-2">
           <div class="w-6 h-6 bg-white rounded-full flex items-center justify-center select-none" style="cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;">
@@ -166,7 +229,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
           <i class="fab fa-discord" style="font-size:10px;"></i> Discord
         </a>
       </div>
-      <div class="tiktok-feed pt-11" id="tiktok-feed"></div>
+      <div class="tiktok-feed pt-10" id="tiktok-feed" style="flex: 1; min-height: 0;"></div>
 
       <!-- Limit Overlay (gratuit) -->
       <div id="limit-overlay" class="limit-overlay hidden">
@@ -632,9 +695,18 @@ async function loadVideos() {
         <i class="fas fa-share text-2xl"></i>
       </button>`;
 
-    slide.appendChild(videoEl); slide.appendChild(overlay); slide.appendChild(badge);
-    slide.appendChild(info); slide.appendChild(actions); slide.appendChild(loader);
-    slide.appendChild(bigPlay); slide.appendChild(controls); feed.appendChild(slide);
+    const videoWrapper = document.createElement('div');
+    videoWrapper.className = 'video-wrapper';
+    videoWrapper.appendChild(videoEl);
+    videoWrapper.appendChild(overlay);
+    videoWrapper.appendChild(badge);
+    videoWrapper.appendChild(info);
+    videoWrapper.appendChild(actions);
+    videoWrapper.appendChild(loader);
+    videoWrapper.appendChild(bigPlay);
+    slide.appendChild(videoWrapper);
+    slide.appendChild(controls);
+    feed.appendChild(slide);
     setupVideoControls(videoEl, video.id, loader, bigPlay);
   }
 
@@ -727,11 +799,20 @@ function setupVideoControls(video, id, loader, bigPlay) {
 }
 
 function toggleFullscreen(video) {
-  const container = video.closest('.demo-container') || video.parentElement;
+  const slide = video.closest('.video-slide');
+  const container = slide || video.parentElement;
   if (!document.fullscreenElement) {
-    if (container.requestFullscreen) container.requestFullscreen();
-    else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
-    else if (container.msRequestFullscreen) container.msRequestFullscreen();
+    if (container.requestFullscreen) {
+      container.requestFullscreen().catch(err => {
+        console.warn('Fullscreen error:', err);
+        // Fallback: fullscreen sur la vidéo elle-même
+        if (video.requestFullscreen) video.requestFullscreen();
+      });
+    } else if (container.webkitRequestFullscreen) {
+      container.webkitRequestFullscreen();
+    } else if (container.msRequestFullscreen) {
+      container.msRequestFullscreen();
+    }
   } else {
     if (document.exitFullscreen) document.exitFullscreen();
     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
