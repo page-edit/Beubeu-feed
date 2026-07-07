@@ -621,11 +621,7 @@ body {
             <i class="fas fa-credit-card"></i> S'abonner maintenant
           </a>
         </div>
-        <div id="sub-btn-manual" style="display:none; margin-top:10px;">
-          <button onclick="activatePremiumDirect()" class="w-full flex items-center justify-center gap-2 py-3 bg-zinc-800 text-emerald-400 font-semibold rounded-2xl text-sm cursor-pointer border border-zinc-700">
-            <i class="fas fa-key"></i> J'ai déjà payé — Activer
-          </button>
-        </div>
+
         <div id="sub-btn-activate" style="display:none;">
           <button onclick="verifyStripePayment()" class="w-full flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white font-semibold rounded-2xl text-sm cursor-pointer border-none">
             <i class="fas fa-check-circle"></i> Activer mon Premium
@@ -1596,8 +1592,6 @@ function checkStripeReturn() {
 
   const normalBtn = document.getElementById('sub-btn-normal');
   const activateBtn = document.getElementById('sub-btn-activate');
-  const manualBtn = document.getElementById('sub-btn-manual');
-
   if (normalBtn && activateBtn) {
     if (fromStripe || sessionId || hasSuccess) {
       normalBtn.style.display = 'none';
@@ -1626,7 +1620,7 @@ async function verifyStripePayment() {
     return;
   }
 
-  // Try server verification first, but fallback to direct activation
+  // Try server verification first (secure way)
   try {
     const userId = getUserId();
     const res = await fetch(API_URL + '/verify-payment', {
@@ -1644,11 +1638,16 @@ async function verifyStripePayment() {
       }
     }
   } catch (err) {
-    console.warn('Vérification serveur indisponible, activation directe:', err);
+    console.warn('Vérification serveur indisponible:', err);
   }
 
-  // Fallback: activate directly (user returned from Stripe = paid)
-  activatePremiumDirect();
+  // If server is down but user came back from Stripe, activate
+  // (Stripe redirect with success params = payment was made)
+  if (hasSuccess || sessionId) {
+    activatePremiumDirect();
+  } else {
+    showDevToast('❌ Impossible de vérifier le paiement. Contacte le support.');
+  }
 }
 
 function activatePremiumDirect() {
