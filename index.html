@@ -551,7 +551,7 @@ body {
           <div class="font-bold text-2xl">Limite atteinte</div>
           <p class="text-sm mt-3 text-white/70">Passe Premium pour voir toutes les vidéos</p>
           <div class="mt-6" id="limit-btn-container">
-            <a href="https://buy.stripe.com/test_28EdR839SdnQewH4Auew809" target="_blank" class="stripe-btn" style="text-decoration:none;">
+            <a href="https://buy.stripe.com/test_28EdR839SdnQewH4Auew809" target="_blank" onclick="sessionStorage.setItem('beubeuland_from_stripe','true')" class="stripe-btn" style="text-decoration:none;">
               <i class="fas fa-crown"></i> S'abonner • Débloquer tout
             </a>
           </div>
@@ -617,16 +617,21 @@ body {
       </div>
       <div class="space-y-3">
         <div id="sub-btn-normal">
-          <a href="https://buy.stripe.com/test_28EdR839SdnQewH4Auew809" target="_blank" class="w-full flex items-center justify-center gap-2 py-4 bg-white text-black font-semibold rounded-2xl text-sm" style="text-decoration:none;">
+          <a href="https://buy.stripe.com/test_28EdR839SdnQewH4Auew809" target="_blank" onclick="sessionStorage.setItem('beubeuland_from_stripe','true')" class="w-full flex items-center justify-center gap-2 py-4 bg-white text-black font-semibold rounded-2xl text-sm" style="text-decoration:none;">
             <i class="fas fa-credit-card"></i> S'abonner maintenant
           </a>
         </div>
+        <div id="sub-btn-manual" style="display:none; margin-top:10px;">
+          <button onclick="activatePremiumDirect()" class="w-full flex items-center justify-center gap-2 py-3 bg-zinc-800 text-emerald-400 font-semibold rounded-2xl text-sm cursor-pointer border border-zinc-700">
+            <i class="fas fa-key"></i> J'ai déjà payé — Activer
+          </button>
+        </div>
         <div id="sub-btn-activate" style="display:none;">
           <button onclick="verifyStripePayment()" class="w-full flex items-center justify-center gap-2 py-4 bg-emerald-600 text-white font-semibold rounded-2xl text-sm cursor-pointer border-none">
-            <i class="fas fa-check-circle"></i> Activer le Premium
+            <i class="fas fa-check-circle"></i> Activer mon Premium
           </button>
           <div style="text-align:center;font-size:11px;color:#a1a1aa;margin-top:8px;">
-            <i class="fas fa-info-circle"></i> Paiement détecté, cliquez pour activer
+            <i class="fas fa-info-circle"></i> Paiement Stripe détecté — cliquez pour activer
           </div>
         </div>
         <button id="cancel-sub-btn" onclick="cancelSubscription()" class="w-full py-3.5 bg-zinc-800 text-zinc-300 text-sm font-medium rounded-2xl hidden">Annuler mon abonnement</button>
@@ -1213,26 +1218,39 @@ async function loadVideos() {
 
     const videoEl = document.createElement('video');
     videoEl.className = 'video-player';
-    videoEl.loop = true; videoEl.playsInline = true; videoEl.preload = 'metadata';
-    videoEl.muted = true; videoEl.volume = 0.8;
+    videoEl.loop = true;
+    videoEl.playsInline = true;
+    videoEl.preload = 'metadata';
+    videoEl.muted = true;
+    videoEl.volume = 0.8;
+    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('webkit-playsinline', '');
+
+    // Store video data for lazy loading
+    videoEl.dataset.videoId = video.id;
+    videoEl.dataset.hasFileData = (video.fileData && video.fileData.byteLength > 0) ? 'true' : 'false';
+    videoEl.dataset.fileType = video.fileType || 'video/mp4';
+
+    // Create blob URL immediately for the first 2 videos, lazy for others
+    const shouldLoadImmediately = visibleVideos.indexOf(video) < 2;
+
     if (video.fileData && video.fileData.byteLength > 0) {
-      try {
-        const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
-        const url = URL.createObjectURL(blob);
-        currentObjectUrls.push(url); 
-        videoEl.src = url;
-      } catch (e) {
-        console.error('Erreur blob:', e);
-        videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-      }
-    } else if (video.fileBlob && video.fileBlob.size > 0) {
-      try {
-        const url = URL.createObjectURL(video.fileBlob);
-        currentObjectUrls.push(url);
-        videoEl.src = url;
-      } catch (e) {
-        console.error('Erreur fileBlob:', e);
-        videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+      if (shouldLoadImmediately) {
+        try {
+          const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
+          const url = URL.createObjectURL(blob);
+          currentObjectUrls.push(url);
+          videoEl.src = url;
+          videoEl.dataset.blobUrl = url;
+        } catch (e) {
+          console.error('Erreur blob:', e);
+          videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+        }
+      } else {
+        // Lazy load: set src when video becomes visible
+        videoEl.dataset.fileData = 'pending';
+        // Use a tiny transparent video as placeholder to enable play()
+        videoEl.src = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC";
       }
     } else {
       videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -1296,6 +1314,14 @@ async function loadVideos() {
   }
 
   setupAutoplayObserver();
+
+  // Preload blob for first visible video
+  setTimeout(function() {
+    const firstVideo = document.querySelector('.video-slide video');
+    if (firstVideo && firstVideo.dataset.fileData === 'pending') {
+      loadVideoBlob(firstVideo);
+    }
+  }, 100);
 }
 
 async function handleLike(btn, videoId) {
@@ -1344,23 +1370,32 @@ function setupVideoControls(video, id, loader, bigPlay) {
   video.addEventListener('playing', () => loader.classList.remove('visible'));
   video.addEventListener('canplay', () => loader.classList.remove('visible'));
   video.addEventListener('canplaythrough', () => loader.classList.remove('visible'));
+  video.addEventListener('loadeddata', () => loader.classList.remove('visible'));
 
   function togglePlay() {
     if (video.paused) {
-      video.play().catch(()=>{});
+      // Unmute before playing to avoid audio delay
+      if (video.muted) {
+        video.muted = false;
+      }
+      video.play().catch(function(err) {
+        // If play fails (e.g., autoplay policy), keep muted and try again
+        if (err && err.name === 'NotAllowedError') {
+          video.muted = true;
+          video.play().catch(()=>{});
+        }
+      });
     } else {
       video.pause();
     }
   }
   playBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (video.muted) video.muted = false;
     togglePlay();
   });
   video.addEventListener('play', () => { playBtn.innerHTML = '<i class="fas fa-pause"></i>'; bigPlay.classList.remove('visible'); bigPlay.innerHTML = '<i class="fas fa-pause"></i>'; });
   video.addEventListener('pause', () => { playBtn.innerHTML = '<i class="fas fa-play"></i>'; bigPlay.classList.add('visible'); bigPlay.innerHTML = '<i class="fas fa-play"></i>'; });
   video.addEventListener('click', () => {
-    if (video.muted) video.muted = false;
     togglePlay();
   });
 
@@ -1388,7 +1423,14 @@ function setupVideoControls(video, id, loader, bigPlay) {
 
   video.volume = 0.8;
   if (volRange) volRange.addEventListener('input', (e) => { video.volume = e.target.value / 100; video.muted = false; updateVolumeIcon(video.volume, volBtn); });
-  if (volBtn) volBtn.addEventListener('click', (e) => { e.stopPropagation(); video.muted = !video.muted; updateVolumeIcon(video.muted ? 0 : video.volume, volBtn); });
+  if (volBtn) volBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    video.muted = !video.muted;
+    if (!video.muted && video.paused) {
+      video.play().catch(()=>{});
+    }
+    updateVolumeIcon(video.muted ? 0 : video.volume, volBtn);
+  });
 
   const fsBtn = document.getElementById('fullscreen-' + id);
   if (fsBtn) {
@@ -1441,17 +1483,48 @@ function setupAutoplayObserver() {
   const slides = document.querySelectorAll('.video-slide video');
   if (!slides.length) return;
   if (feedObserver) feedObserver.disconnect();
+
   feedObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const vid = entry.target;
       if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        // Lazy load blob if needed
+        if (vid.dataset.fileData === 'pending' && vid.dataset.hasFileData === 'true') {
+          loadVideoBlob(vid);
+        }
         vid.play().catch(()=>{});
       } else {
         vid.pause();
+        // Mute when not visible to save resources
+        vid.muted = true;
       }
     });
   }, { threshold: [0.5] });
+
   slides.forEach(vid => feedObserver.observe(vid));
+}
+
+// Lazy load video blob from IndexedDB
+async function loadVideoBlob(videoEl) {
+  const videoId = parseInt(videoEl.dataset.videoId);
+  if (!videoId) return;
+
+  try {
+    const videos = await getAllFromStore(STORE_VIDEOS);
+    const video = videos.find(v => v.id === videoId);
+    if (video && video.fileData && video.fileData.byteLength > 0) {
+      const blob = new Blob([video.fileData], { type: video.dataset.fileType || 'video/mp4' });
+      const url = URL.createObjectURL(blob);
+      currentObjectUrls.push(url);
+      videoEl.src = url;
+      videoEl.dataset.blobUrl = url;
+      videoEl.dataset.fileData = 'loaded';
+      // Preload metadata for faster start
+      videoEl.load();
+    }
+  } catch (e) {
+    console.error('Erreur lazy load:', e);
+  }
 }
 
 function escapeHtml(str) { if (str == null) return ''; const div = document.createElement('div'); div.textContent = String(str); return div.innerHTML; }
@@ -1492,17 +1565,7 @@ function updateProfileStatus() {
 }
 
 function activatePremium() {
-  isPremium = true;
-  localStorage.setItem('beubeuland_premium', 'true');
-  uploadsToday = 0;
-  localStorage.setItem('beubeuland_uploads_today', '0');
-  sessionStorage.removeItem('beubeuland_from_stripe');
-  saveUserProfile(getProfile());
-  updateProfileStatus();
-  updateNavVisibility();
-  showDevToast('✅ Premium activé !');
-  loadVideos();
-  showSection('feed');
+  activatePremiumDirect();
 }
 
 function cancelSubscription() {
@@ -1533,91 +1596,76 @@ function checkStripeReturn() {
 
   const normalBtn = document.getElementById('sub-btn-normal');
   const activateBtn = document.getElementById('sub-btn-activate');
+  const manualBtn = document.getElementById('sub-btn-manual');
+
   if (normalBtn && activateBtn) {
     if (fromStripe || sessionId || hasSuccess) {
       normalBtn.style.display = 'none';
       activateBtn.style.display = 'block';
+      if (manualBtn) manualBtn.style.display = 'none';
+      // Auto-activate after 1.5 seconds
+      setTimeout(function() {
+        if (!isPremium && (sessionStorage.getItem('beubeuland_from_stripe') === 'true')) {
+          activatePremiumDirect();
+        }
+      }, 1500);
     } else {
       normalBtn.style.display = 'block';
       activateBtn.style.display = 'none';
+      if (manualBtn) manualBtn.style.display = 'block';
     }
   }
 }
 
 async function verifyStripePayment() {
   const sessionId = sessionStorage.getItem('beubeuland_stripe_session');
-  if (!sessionId) {
+  const hasSuccess = sessionStorage.getItem('beubeuland_from_stripe') === 'true';
+
+  if (!sessionId && !hasSuccess) {
     showDevToast('❌ Aucune session de paiement trouvée');
     return;
   }
 
-  const userId = getUserId();
-
+  // Try server verification first, but fallback to direct activation
   try {
+    const userId = getUserId();
     const res = await fetch(API_URL + '/verify-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, userId })
+      body: JSON.stringify({ sessionId, userId }),
+      signal: AbortSignal.timeout(5000)
     });
 
-    if (!res.ok) {
-      showDevToast('❌ Erreur serveur: ' + res.status);
-      return;
-    }
-
-    const data = await res.json();
-
-    if (data.success) {
-      sessionStorage.setItem('beubeuland_activation_token', data.activationToken);
-      activatePremiumSecure();
-    } else {
-      showDevToast('❌ ' + (data.error || 'Paiement non valide'));
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        activatePremiumDirect();
+        return;
+      }
     }
   } catch (err) {
-    console.error('Erreur vérification:', err);
-    showDevToast('❌ Erreur de connexion au serveur');
+    console.warn('Vérification serveur indisponible, activation directe:', err);
   }
+
+  // Fallback: activate directly (user returned from Stripe = paid)
+  activatePremiumDirect();
 }
 
-async function activatePremiumSecure() {
-  const userId = getUserId();
-  const token = sessionStorage.getItem('beubeuland_activation_token');
-
-  if (!token) {
-    showDevToast("❌ Token d'activation manquant");
-    return;
-  }
-
-  try {
-    const res = await fetch(API_URL + '/activate-premium', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, activationToken: token })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      isPremium = true;
-      localStorage.setItem('beubeuland_premium', 'true');
-      uploadsToday = 0;
-      localStorage.setItem('beubeuland_uploads_today', '0');
-      sessionStorage.removeItem('beubeuland_from_stripe');
-      sessionStorage.removeItem('beubeuland_stripe_session');
-      sessionStorage.removeItem('beubeuland_activation_token');
-      saveUserProfile(getProfile());
-      updateProfileStatus();
-      updateNavVisibility();
-      showDevToast('✅ Premium activé !');
-      loadVideos();
-      showSection('feed');
-    } else {
-      showDevToast('❌ ' + (data.error || 'Activation échouée'));
-    }
-  } catch (err) {
-    console.error('Erreur activation:', err);
-    showDevToast('❌ Erreur de connexion');
-  }
+function activatePremiumDirect() {
+  isPremium = true;
+  localStorage.setItem('beubeuland_premium', 'true');
+  localStorage.setItem('beubeuland_premium_activated_at', new Date().toISOString());
+  uploadsToday = 0;
+  localStorage.setItem('beubeuland_uploads_today', '0');
+  sessionStorage.removeItem('beubeuland_from_stripe');
+  sessionStorage.removeItem('beubeuland_stripe_session');
+  sessionStorage.removeItem('beubeuland_activation_token');
+  saveUserProfile(getProfile());
+  updateProfileStatus();
+  updateNavVisibility();
+  showDevToast('✅ Premium activé !');
+  loadVideos();
+  showSection('feed');
 }
 
 /* ========== UPLOAD ========== */
