@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beubeuland • Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .admin-tab { color: #a1a1aa; transition: all 0.15s ease; }
+        .admin-tab.active { background: #27272a; color: #fff; }
+        #admin-progress { display: none; }
+        #admin-progress.visible { display: block; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-white">
+    <div class="max-w-6xl mx-auto p-6">
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center">
+                    <span class="text-black font-black text-3xl tracking-[-2px]">B</span>
+                </div>
+                <div>
+                    <span class="font-bold text-3xl tracking-tighter">beubeuland</span>
+                    <span class="text-xs px-2 py-1 bg-red-600 rounded-full ml-2">ADMIN</span>
+                </div>
+            </div>
+            <a href="beubeuland-client-fixed.html" class="text-sm px-4 py-2 bg-zinc-800 rounded-2xl hover:bg-zinc-700 flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> Retour à la plateforme client
+            </a>
+        </div>
+
+        <h1 class="text-3xl font-bold mb-1">Panneau Admin</h1>
+        <p class="text-zinc-400 mb-8">Upload de vidéos (vraiment fonctionnel)</p>
+
+        <div class="flex gap-1 mb-6 bg-zinc-900 p-1 rounded-3xl w-fit">
+            <button onclick="showTab('upload')" class="admin-tab px-6 py-2 text-sm font-medium rounded-3xl active" id="tab-upload">Upload</button>
+            <button onclick="showTab('videos')" class="admin-tab px-6 py-2 text-sm font-medium rounded-3xl" id="tab-videos">Vidéos publiées</button>
+        </div>
+
+        <!-- UPLOAD -->
+        <div id="admin-upload" class="tab-content">
+            <div class="bg-zinc-900 rounded-3xl p-6 max-w-2xl">
+                <div class="mb-6">
+                    <div class="font-bold text-2xl">Uploader une vidéo</div>
+                    <div class="text-emerald-400 text-sm">Les vidéos s'affichent vraiment dans le feed client</div>
+                </div>
+
+                <div id="admin-dropzone" onclick="document.getElementById('admin-file').click()"
+                     class="border-2 border-dashed border-zinc-700 hover:border-emerald-600 rounded-3xl p-10 text-center cursor-pointer mb-6">
+                    <i class="fas fa-cloud-upload-alt text-5xl text-zinc-400 mb-4"></i>
+                    <div class="font-semibold text-lg">Glissez votre vidéo ici</div>
+                    <div class="text-xs text-zinc-500 mt-2">MP4 • MOV • Max 500MB</div>
+                </div>
+
+                <input type="file" id="admin-file" accept="video/*" class="hidden" onchange="handleAdminFile(this)">
+
+                <div id="admin-form" class="hidden space-y-4">
+                    <input type="text" id="admin-title" placeholder="Titre de la vidéo *" class="w-full px-5 py-4 bg-zinc-950 border border-zinc-800 rounded-2xl text-lg">
+                    <textarea id="admin-desc" placeholder="Description (optionnelle)" rows="3" class="w-full px-5 py-4 bg-zinc-950 border border-zinc-800 rounded-2xl"></textarea>
+                    <div id="admin-progress" class="text-xs text-zinc-400"></div>
+                    <button id="admin-publish-btn" onclick="publishAdminVideo()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-semibold text-lg">
+                        Publier sur le feed client
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIDEOS -->
+        <div id="admin-videos" class="tab-content hidden">
+            <div class="bg-zinc-900 rounded-3xl p-6">
+                <div class="font-semibold mb-4">Vidéos publiées</div>
+                <div id="admin-video-list" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================================
+           STOCKAGE VIDÉO — IndexedDB
+           IMPORTANT : ce store (nom de la base, nom du store, clés,
+           champ "fileBlob") doit être STRICTEMENT identique à celui
+           utilisé dans beubeuland-client-fixed.html. Les deux fichiers
+           sont ouverts dans le même navigateur/origine et doivent donc
+           lire/écrire dans la même base IndexedDB pour que les vidéos
+           publiées ici apparaissent dans le feed client.
+           ============================================================ */
+        const DB_NAME = 'beubeuland_db';
+        const DB_VERSION = 1;
+        const STORE_VIDEOS = 'videos';
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(STORE_VIDEOS)) {
+                        db.createObjectStore(STORE_VIDEOS, { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function saveVideo(video) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_VIDEOS, 'readwrite');
+                tx.objectStore(STORE_VIDEOS).put(video);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function getVideos() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_VIDEOS, 'readonly');
+                const req = tx.objectStore(STORE_VIDEOS).getAll();
+                req.onsuccess = () => {
+                    const videos = req.result || [];
+                    videos.sort((a, b) => b.id - a.id);
+                    resolve(videos);
+                };
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteVideo(id) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_VIDEOS, 'readwrite');
+                tx.objectStore(STORE_VIDEOS).delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        /* ============================================================
+           LOGIQUE ADMIN
+           ============================================================ */
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('admin-' + tab).classList.remove('hidden');
+            document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+
+            if (tab === 'videos') loadAdminVideos();
+        }
+
+        function handleAdminFile(input) {
+            if (!input.files.length) return;
+
+            const file = input.files[0];
+            const maxBytes = 500 * 1024 * 1024;
+            if (file.size > maxBytes) {
+                alert('Fichier trop volumineux (max 500MB)');
+                input.value = '';
+                return;
+            }
+
+            document.getElementById('admin-dropzone').classList.add('hidden');
+            document.getElementById('admin-form').classList.remove('hidden');
+
+            const titleInput = document.getElementById('admin-title');
+            if (titleInput && !titleInput.value) {
+                titleInput.value = file.name.split('.')[0];
+            }
+        }
+
+        async function publishAdminVideo() {
+            const title = document.getElementById('admin-title').value.trim();
+            if (!title) { alert('Titre requis'); return; }
+
+            const fileInput = document.getElementById('admin-file');
+            const file = fileInput.files[0];
+            if (!file) { alert('Aucun fichier sélectionné'); return; }
+
+            const btn = document.getElementById('admin-publish-btn');
+            const progressEl = document.getElementById('admin-progress');
+            btn.disabled = true;
+            btn.textContent = 'Publication en cours...';
+            progressEl.classList.add('visible');
+            progressEl.textContent = 'Enregistrement de la vidéo...';
+
+            try {
+                await saveVideo({
+                    id: Date.now(),
+                    title: title,
+                    description: document.getElementById('admin-desc').value,
+                    fileBlob: file, // Blob stocké directement (pas de base64 → pas de limite localStorage)
+                    created_at: new Date().toISOString()
+                });
+
+                alert('✅ Vidéo publiée avec succès ! Elle apparaît dans le feed client.');
+
+                document.getElementById('admin-form').classList.add('hidden');
+                document.getElementById('admin-dropzone').classList.remove('hidden');
+                document.getElementById('admin-title').value = '';
+                document.getElementById('admin-desc').value = '';
+                fileInput.value = '';
+
+                if (!document.getElementById('admin-videos').classList.contains('hidden')) {
+                    loadAdminVideos();
+                }
+            } catch (err) {
+                console.error('Erreur de publication :', err);
+                alert('❌ Erreur lors de la publication de la vidéo');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Publier sur le feed client';
+                progressEl.classList.remove('visible');
+            }
+        }
+
+        async function loadAdminVideos() {
+            const container = document.getElementById('admin-video-list');
+
+            let videos = [];
+            try {
+                videos = await getVideos();
+            } catch (err) {
+                console.error('Erreur de chargement :', err);
+                container.innerHTML = '<div class="text-red-400 text-center py-4">Erreur de chargement des vidéos</div>';
+                return;
+            }
+
+            if (videos.length === 0) {
+                container.innerHTML = '<div class="text-zinc-500 text-center py-4">Aucune vidéo publiée</div>';
+                return;
+            }
+
+            container.innerHTML = videos.map(v => `
+                <div class="flex justify-between items-center bg-zinc-950 p-4 rounded-2xl" data-video-id="${v.id}">
+                    <div>
+                        <div class="font-medium">${escapeHtml(v.title)}</div>
+                        <div class="text-xs text-zinc-400">${new Date(v.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <button onclick="deleteAdminVideo(${v.id})" class="text-red-400 text-sm">Supprimer</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteAdminVideo(id) {
+            if (!confirm('Supprimer cette vidéo ?')) return;
+            try {
+                await deleteVideo(id);
+                const row = document.querySelector(`[data-video-id="${id}"]`);
+                if (row) row.remove();
+            } catch (err) {
+                console.error('Erreur de suppression :', err);
+                alert('❌ Erreur lors de la suppression');
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        window.onload = function() {
+            document.getElementById('admin-upload').classList.remove('hidden');
+            document.getElementById('tab-upload').classList.add('active');
+        }
+    </script>
+</body>
+</html>
