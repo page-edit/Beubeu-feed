@@ -106,6 +106,9 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 .stripe-btn:hover { background: #7c73ff; transform: translateY(-1px); }
 
 .hidden { display: none !important; }
+
+.section { display: none; }
+.section.active { display: block; }
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -139,7 +142,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 
   <!-- FEED -->
   <div id="section-feed" class="section active">
-    <div class="demo-container bg-black h-[640px]">
+    <div class="demo-container bg-black" style="height: 640px; min-height: 640px;">
       <div class="app-header">
         <div class="flex items-center gap-2">
           <div class="w-6 h-6 bg-white rounded-full flex items-center justify-center">
@@ -170,7 +173,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
   </div>
 
   <!-- PROFILE -->
-  <div id="section-profile" class="section hidden">
+  <div id="section-profile" class="section">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="flex flex-col items-center">
         <div class="relative">
@@ -199,11 +202,11 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
   </div>
 
   <!-- SUBSCRIPTION -->
-  <div id="section-subscription" class="section hidden">
+  <div id="section-subscription" class="section">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="text-center mb-8">
         <div class="text-emerald-400 text-sm font-semibold">PREMIUM</div>
-        <div class="text-5xl font-bold mt-2">9,99 €</div>
+        <div class="text-5xl font-bold mt-2">3,99 €</div>
         <div class="text-zinc-400">par mois</div>
       </div>
       <div class="bg-zinc-950 rounded-2xl p-5 mb-6 space-y-3">
@@ -237,7 +240,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
   </div>
 
   <!-- UPLOAD -->
-  <div id="section-upload" class="section hidden">
+  <div id="section-upload" class="section">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="mb-6">
         <div class="font-bold text-xl">Publier une vidéo</div>
@@ -295,29 +298,8 @@ const STORE_VIDEOS = 'videos';
 const STORE_USERS = 'users';
 const STORE_LIKES = 'likes';
 
-/* ========== STATE (déclaré AVANT les fonctions qui l'utilisent) ========== */
-let isPremium = false;
-let uploadsToday = 0;
-let currentObjectUrls = [];
-let feedObserver = null;
-let userProfile = {};
-
-try {
-  isPremium = localStorage.getItem('beubeuland_premium') === 'true';
-} catch (e) { isPremium = false; }
-
-try {
-  uploadsToday = parseInt(localStorage.getItem('beubeuland_uploads_today') || '0', 10);
-  if (isNaN(uploadsToday)) uploadsToday = 0;
-} catch (e) { uploadsToday = 0; }
-
-try {
-  userProfile = JSON.parse(localStorage.getItem('beubeuland_profile') || '{}');
-} catch (e) { userProfile = {}; }
-
 function openDB() {
   return new Promise((resolve, reject) => {
-    if (!window.indexedDB) { reject(new Error('IndexedDB non supporté')); return; }
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = req.result;
@@ -327,57 +309,46 @@ function openDB() {
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error('Base de données bloquée par une autre version'));
   });
 }
 
 async function saveToStore(store, data) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(store, 'readwrite');
-      tx.objectStore(store).put(data);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(new Error('Transaction annulée'));
-    } catch (err) { reject(err); }
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(data);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
 async function getFromStore(store, key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(store, 'readonly');
-      const req = tx.objectStore(store).get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    } catch (err) { reject(err); }
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
 }
 
 async function getAllFromStore(store) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(store, 'readonly');
-      const req = tx.objectStore(store).getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    } catch (err) { reject(err); }
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
   });
 }
 
 async function deleteFromStore(store, key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(store, 'readwrite');
-      tx.objectStore(store).delete(key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(new Error('Transaction annulée'));
-    } catch (err) { reject(err); }
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -390,11 +361,10 @@ async function getVideos() {
 
 /* ========== USER ========== */
 function getUserId() {
-  let uid = '';
-  try { uid = localStorage.getItem('beubeuland_userId'); } catch (e) {}
+  let uid = localStorage.getItem('beubeuland_userId');
   if (!uid) {
     uid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    try { localStorage.setItem('beubeuland_userId', uid); } catch (e) {}
+    localStorage.setItem('beubeuland_userId', uid);
   }
   return uid;
 }
@@ -413,9 +383,7 @@ async function loadUserProfile() {
   const data = await getFromStore(STORE_USERS, getUserId());
   if (data) {
     userProfile = { name: data.name, bio: data.bio, avatar: data.avatar };
-    if (typeof data.isPremium === 'boolean') isPremium = data.isPremium;
-    try { localStorage.setItem('beubeuland_premium', String(isPremium)); } catch (e) {}
-    try { localStorage.setItem('beubeuland_profile', JSON.stringify(userProfile)); } catch (e) {}
+    localStorage.setItem('beubeuland_profile', JSON.stringify(userProfile));
   }
 }
 
@@ -445,7 +413,13 @@ async function toggleLike(videoId) {
   }
 }
 
-/* ========== PROFILE ========== */
+/* ========== STATE ========== */
+let isPremium = localStorage.getItem('beubeuland_premium') === 'true';
+let uploadsToday = parseInt(localStorage.getItem('beubeuland_uploads_today') || '0');
+let currentObjectUrls = [];
+let feedObserver = null;
+let userProfile = JSON.parse(localStorage.getItem('beubeuland_profile') || '{}');
+
 function getProfile() {
   return {
     name: userProfile.name || 'Beubeuland',
@@ -456,62 +430,60 @@ function getProfile() {
 
 function saveProfileData(data) {
   userProfile = { ...userProfile, ...data };
-  try { localStorage.setItem('beubeuland_profile', JSON.stringify(userProfile)); } catch (e) {}
-  saveUserProfile(userProfile).catch(() => {});
+  localStorage.setItem('beubeuland_profile', JSON.stringify(userProfile));
+  saveUserProfile(userProfile);
   renderProfile();
 }
 
 function renderProfile() {
   const p = getProfile();
-  const nameEl = document.getElementById('profile-name');
-  const bioEl = document.getElementById('profile-bio');
-  if (nameEl) nameEl.textContent = p.name;
-  if (bioEl) bioEl.textContent = p.bio;
+  document.getElementById('profile-name').textContent = p.name;
+  document.getElementById('profile-bio').textContent = p.bio;
   const avatarText = document.getElementById('profile-avatar-text');
   const avatarImg = document.getElementById('profile-avatar-img');
-  if (p.avatar && avatarText && avatarImg) {
-    avatarText.classList.add('hidden');
-    avatarImg.src = p.avatar;
-    avatarImg.classList.remove('hidden');
-  } else if (avatarText && avatarImg) {
-    avatarText.classList.remove('hidden');
-    avatarImg.classList.add('hidden');
-  }
+  if (p.avatar) { avatarText.classList.add('hidden'); avatarImg.src = p.avatar; avatarImg.classList.remove('hidden'); }
+  else { avatarText.classList.remove('hidden'); avatarImg.classList.add('hidden'); }
 }
 
 /* ========== NAV & UI ========== */
 function updateNavVisibility() {
   const profileTab = document.getElementById('nav-profile');
   const uploadTab = document.getElementById('nav-upload');
-  if (profileTab && uploadTab) {
-    if (isPremium) {
-      profileTab.classList.remove('hidden');
-      uploadTab.classList.remove('hidden');
-    } else {
-      profileTab.classList.add('hidden');
-      uploadTab.classList.add('hidden');
-    }
+  if (isPremium) {
+    profileTab.classList.remove('hidden');
+    uploadTab.classList.remove('hidden');
+  } else {
+    profileTab.classList.add('hidden');
+    uploadTab.classList.add('hidden');
   }
 }
 
 function showSection(section) {
-  document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
-  const sectionEl = document.getElementById('section-' + section);
-  if (sectionEl) sectionEl.style.display = 'block';
+  // Cacher toutes les sections
+  document.querySelectorAll('.section').forEach(el => {
+    el.style.display = 'none';
+    el.classList.add('hidden');
+  });
+  // Afficher la section demandée
+  const target = document.getElementById('section-' + section);
+  if (target) {
+    target.style.display = 'block';
+    target.classList.remove('hidden');
+  }
+  // Mettre à jour les onglets
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-  const navEl = document.getElementById('nav-' + section);
-  if (navEl) navEl.classList.add('active');
-  if (section === 'feed') loadVideos().catch(() => {});
+  const navBtn = document.getElementById('nav-' + section);
+  if (navBtn) navBtn.classList.add('active');
+
+  if (section === 'feed') loadVideos();
   if (section === 'upload') updateUploadCount();
 }
 
 /* ========== PROFILE EDIT ========== */
 function openProfileEdit() {
   const p = getProfile();
-  const nameInput = document.getElementById('edit-name');
-  const bioInput = document.getElementById('edit-bio');
-  if (nameInput) nameInput.value = p.name === 'Beubeuland' ? '' : p.name;
-  if (bioInput) bioInput.value = p.bio === 'demo@beubeuland.com' ? '' : p.bio;
+  document.getElementById('edit-name').value = p.name === 'Beubeuland' ? '' : p.name;
+  document.getElementById('edit-bio').value = p.bio === 'demo@beubeuland.com' ? '' : p.bio;
   document.getElementById('profile-edit-modal').classList.add('visible');
 }
 function closeProfileEdit() { document.getElementById('profile-edit-modal').classList.remove('visible'); }
@@ -520,20 +492,16 @@ function previewAvatar(input) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const preview = document.getElementById('avatar-preview');
-    if (preview) {
-      preview.querySelector('img').src = e.target.result;
-      preview.classList.remove('hidden');
-    }
+    preview.querySelector('img').src = e.target.result;
+    preview.classList.remove('hidden');
   };
   reader.readAsDataURL(input.files[0]);
 }
 function saveProfile() {
-  const nameInput = document.getElementById('edit-name');
-  const bioInput = document.getElementById('edit-bio');
-  const name = nameInput ? nameInput.value.trim() || 'Beubeuland' : 'Beubeuland';
-  const bio = bioInput ? bioInput.value.trim() || 'demo@beubeuland.com' : 'demo@beubeuland.com';
+  const name = document.getElementById('edit-name').value.trim() || 'Beubeuland';
+  const bio = document.getElementById('edit-bio').value.trim() || 'demo@beubeuland.com';
   const avatarInput = document.getElementById('edit-avatar');
-  if (avatarInput && avatarInput.files.length) {
+  if (avatarInput.files.length) {
     const reader = new FileReader();
     reader.onload = (e) => { saveProfileData({ name, bio, avatar: e.target.result }); closeProfileEdit(); };
     reader.readAsDataURL(avatarInput.files[0]);
@@ -551,7 +519,6 @@ function formatTime(seconds) {
 /* ========== VIDEOS ========== */
 async function loadVideos() {
   const feed = document.getElementById('tiktok-feed');
-  if (!feed) return;
   feed.innerHTML = '';
   currentObjectUrls.forEach(url => URL.revokeObjectURL(url));
   currentObjectUrls = [];
@@ -570,76 +537,83 @@ async function loadVideos() {
     return;
   }
 
+  // Gratuit = 2 vidéos max, Premium = toutes
   const maxVideos = isPremium ? videos.length : 2;
   const visibleVideos = videos.slice(0, maxVideos);
 
   for (const video of visibleVideos) {
-    try {
-      const likes = await getLikesForVideo(video.id);
-      const userLiked = await hasUserLiked(video.id);
-      const likeCount = likes.length;
+    const likes = await getLikesForVideo(video.id);
+    const userLiked = await hasUserLiked(video.id);
+    const likeCount = likes.length;
 
-      const slide = document.createElement('div');
-      slide.className = 'video-slide relative';
+    const slide = document.createElement('div');
+    slide.className = 'video-slide relative';
 
-      const videoEl = document.createElement('video');
-      videoEl.className = 'video-player';
-      videoEl.loop = true; videoEl.playsInline = true; videoEl.preload = 'auto';
-      videoEl.muted = false; videoEl.volume = 0.8;
-      if (video.fileBlob && video.fileBlob instanceof Blob) {
-        const url = URL.createObjectURL(video.fileBlob);
-        currentObjectUrls.push(url); videoEl.src = url;
-      } else { videoEl.src = "https://assets.mixkit.co/videos/preview/4119/4119-small.mp4"; }
-
-      const loader = document.createElement('div');
-      loader.className = 'video-loader'; loader.innerHTML = '<div class="spinner"></div>';
-      const bigPlay = document.createElement('div');
-      bigPlay.className = 'big-play-btn'; bigPlay.innerHTML = '<i class="fas fa-play"></i>';
-      const controls = document.createElement('div');
-      controls.className = 'video-controls';
-      controls.innerHTML = `
-        <div class="progress-bar-container" id="prog-${video.id}"><div class="progress-bar-fill" id="fill-${video.id}"></div></div>
-        <div class="controls-row">
-          <button id="play-${video.id}"><i class="fas fa-pause"></i></button>
-          <button id="back-${video.id}"><i class="fas fa-undo"></i></button>
-          <button id="fwd-${video.id}"><i class="fas fa-redo"></i></button>
-          <div class="time-display" id="time-${video.id}">0:00 / 0:00</div>
-          <div style="flex:1"></div>
-          <button class="volume-btn" id="vol-${video.id}"><i class="fas fa-volume-up"></i>
-            <div class="volume-slider"><input type="range" min="0" max="100" value="80" id="vol-range-${video.id}"></div>
-          </button>
-        </div>`;
-
-      const overlay = document.createElement('div'); overlay.className = 'absolute inset-0 video-overlay z-10';
-      const badge = document.createElement('div');
-      badge.className = 'absolute top-14 left-3 px-2 py-0.5 bg-red-600 text-[9px] font-bold rounded-full z-20';
-      badge.textContent = '18+';
-      const authorName = video.authorName || 'Beubeuland';
-      const info = document.createElement('div'); info.className = 'video-info';
-      info.innerHTML = `<div class="font-bold text-base leading-tight">${escapeHtml(video.title)}</div><div class="text-xs text-zinc-300 mt-0.5 leading-tight">${escapeHtml(video.description || '')}</div><div class="text-[10px] text-emerald-400 mt-1">@${escapeHtml(authorName)}</div>`;
-
-      const likeClass = userLiked ? 'liked' : '';
-      const actions = document.createElement('div'); actions.className = 'video-actions-right';
-      actions.innerHTML = `
-        <button onclick="handleLike(this, ${video.id})" class="action-btn flex flex-col items-center gap-0.5 ${likeClass}" id="like-btn-${video.id}">
-          <i class="fas fa-heart text-2xl"></i><span class="text-[10px]" id="like-count-${video.id}">${likeCount}</span>
-        </button>
-        <button onclick="openCommentModal(${video.id})" class="action-btn flex flex-col items-center gap-0.5">
-          <i class="fas fa-comment text-2xl"></i><span class="text-[10px]">0</span>
-        </button>
-        <button onclick="shareVideo(${video.id})" class="action-btn flex flex-col items-center gap-0.5">
-          <i class="fas fa-share text-2xl"></i>
-        </button>`;
-
-      slide.appendChild(videoEl); slide.appendChild(overlay); slide.appendChild(badge);
-      slide.appendChild(info); slide.appendChild(actions); slide.appendChild(loader);
-      slide.appendChild(bigPlay); slide.appendChild(controls); feed.appendChild(slide);
-      setupVideoControls(videoEl, video.id, loader, bigPlay);
-    } catch (err) {
-      console.error('Erreur chargement vidéo:', err);
+    const videoEl = document.createElement('video');
+    videoEl.className = 'video-player';
+    videoEl.loop = true; videoEl.playsInline = true; videoEl.preload = 'auto';
+    videoEl.muted = false; videoEl.volume = 0.8;
+    if (video.fileData) {
+      try {
+        const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
+        const url = URL.createObjectURL(blob);
+        currentObjectUrls.push(url); 
+        videoEl.src = url;
+      } catch (e) {
+        console.error('Erreur blob:', e);
+        videoEl.src = "https://assets.mixkit.co/videos/preview/4119/4119-small.mp4";
+      }
+    } else { 
+      videoEl.src = "https://assets.mixkit.co/videos/preview/4119/4119-small.mp4"; 
     }
+
+    const loader = document.createElement('div');
+    loader.className = 'video-loader'; loader.innerHTML = '<div class="spinner"></div>';
+    const bigPlay = document.createElement('div');
+    bigPlay.className = 'big-play-btn'; bigPlay.innerHTML = '<i class="fas fa-play"></i>';
+    const controls = document.createElement('div');
+    controls.className = 'video-controls';
+    controls.innerHTML = `
+      <div class="progress-bar-container" id="prog-${video.id}"><div class="progress-bar-fill" id="fill-${video.id}"></div></div>
+      <div class="controls-row">
+        <button id="play-${video.id}"><i class="fas fa-pause"></i></button>
+        <button id="back-${video.id}"><i class="fas fa-undo"></i></button>
+        <button id="fwd-${video.id}"><i class="fas fa-redo"></i></button>
+        <div class="time-display" id="time-${video.id}">0:00 / 0:00</div>
+        <div style="flex:1"></div>
+        <button class="volume-btn" id="vol-${video.id}"><i class="fas fa-volume-up"></i>
+          <div class="volume-slider"><input type="range" min="0" max="100" value="80" id="vol-range-${video.id}"></div>
+        </button>
+      </div>`;
+
+    const overlay = document.createElement('div'); overlay.className = 'absolute inset-0 video-overlay z-10';
+    const badge = document.createElement('div');
+    badge.className = 'absolute top-14 left-3 px-2 py-0.5 bg-red-600 text-[9px] font-bold rounded-full z-20';
+    badge.textContent = '18+';
+    const authorName = video.authorName || 'Beubeuland';
+    const info = document.createElement('div'); info.className = 'video-info';
+    info.innerHTML = `<div class="font-bold text-base leading-tight">${escapeHtml(video.title)}</div><div class="text-xs text-zinc-300 mt-0.5 leading-tight">${escapeHtml(video.description || '')}</div><div class="text-[10px] text-emerald-400 mt-1">@${escapeHtml(authorName)}</div>`;
+
+    const likeClass = userLiked ? 'liked' : '';
+    const actions = document.createElement('div'); actions.className = 'video-actions-right';
+    actions.innerHTML = `
+      <button onclick="handleLike(this, ${video.id})" class="action-btn flex flex-col items-center gap-0.5 ${likeClass}" id="like-btn-${video.id}">
+        <i class="fas fa-heart text-2xl"></i><span class="text-[10px]" id="like-count-${video.id}">${likeCount}</span>
+      </button>
+      <button onclick="openCommentModal(${video.id})" class="action-btn flex flex-col items-center gap-0.5">
+        <i class="fas fa-comment text-2xl"></i><span class="text-[10px]">0</span>
+      </button>
+      <button onclick="shareVideo(${video.id})" class="action-btn flex flex-col items-center gap-0.5">
+        <i class="fas fa-share text-2xl"></i>
+      </button>`;
+
+    slide.appendChild(videoEl); slide.appendChild(overlay); slide.appendChild(badge);
+    slide.appendChild(info); slide.appendChild(actions); slide.appendChild(loader);
+    slide.appendChild(bigPlay); slide.appendChild(controls); feed.appendChild(slide);
+    setupVideoControls(videoEl, video.id, loader, bigPlay);
   }
 
+  // Show limit overlay for free users if there are more videos
   if (!isPremium && videos.length > 2) {
     document.getElementById('limit-overlay').classList.remove('hidden');
   } else {
@@ -650,16 +624,12 @@ async function loadVideos() {
 }
 
 async function handleLike(btn, videoId) {
-  try {
-    const isLiked = await toggleLike(videoId);
-    const countEl = document.getElementById('like-count-' + videoId);
-    const likes = await getLikesForVideo(videoId);
-    if (countEl) countEl.textContent = likes.length;
-    if (isLiked) btn.classList.add('liked');
-    else btn.classList.remove('liked');
-  } catch (err) {
-    console.error('Erreur like:', err);
-  }
+  const isLiked = await toggleLike(videoId);
+  const countEl = document.getElementById('like-count-' + videoId);
+  const likes = await getLikesForVideo(videoId);
+  countEl.textContent = likes.length;
+  if (isLiked) btn.classList.add('liked');
+  else btn.classList.remove('liked');
 }
 
 /* ========== CONTROLS ========== */
@@ -690,8 +660,8 @@ function setupVideoControls(video, id, loader, bigPlay) {
 
   video.addEventListener('timeupdate', () => {
     if (video.duration && isFinite(video.duration)) {
-      if (progFill) progFill.style.width = ((video.currentTime / video.duration) * 100) + '%';
-      if (timeDisplay) timeDisplay.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+      progFill.style.width = ((video.currentTime / video.duration) * 100) + '%';
+      timeDisplay.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
     }
   });
 
@@ -706,7 +676,7 @@ function setupVideoControls(video, id, loader, bigPlay) {
   video.volume = 0.8;
   if (volRange) volRange.addEventListener('input', (e) => { video.volume = e.target.value / 100; video.muted = false; updateVolumeIcon(video.volume, volBtn); });
   if (volBtn) volBtn.addEventListener('click', (e) => { e.stopPropagation(); video.muted = !video.muted; updateVolumeIcon(video.muted ? 0 : video.volume, volBtn); });
-  video.addEventListener('loadedmetadata', () => { if (timeDisplay) timeDisplay.textContent = '0:00 / ' + formatTime(video.duration); });
+  video.addEventListener('loadedmetadata', () => { timeDisplay.textContent = '0:00 / ' + formatTime(video.duration); });
 }
 
 function updateVolumeIcon(vol, btn) {
@@ -719,33 +689,24 @@ function updateVolumeIcon(vol, btn) {
 function setupAutoplayObserver() {
   const slides = document.querySelectorAll('.video-slide video');
   if (!slides.length) return;
-  const feedRoot = document.getElementById('tiktok-feed');
   feedObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const vid = entry.target;
       if (entry.isIntersecting && entry.intersectionRatio >= 0.6) vid.play().catch(()=>{});
       else vid.pause();
     });
-  }, { root: feedRoot || null, threshold: [0.6] });
+  }, { root: document.getElementById('tiktok-feed'), threshold: [0.6] });
   slides.forEach(vid => feedObserver.observe(vid));
 }
 
-function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 function openCommentModal(id) { alert('Commentaires pour vidéo #' + id); }
-function shareVideo(id) {
-  const url = 'https://beubeuland.com/video/' + id;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => alert('Lien copié !')).catch(() => alert('Impossible de copier le lien'));
-  } else {
-    alert('Lien: ' + url);
-  }
-}
+function shareVideo(id) { navigator.clipboard.writeText('https://beubeuland.com/video/' + id); alert('Lien copié !'); }
 
 /* ========== SUBSCRIPTION ========== */
 function updateProfileStatus() {
   const status = document.getElementById('profile-status');
   const cancelBtn = document.getElementById('cancel-sub-btn');
-  if (!status) return;
   if (isPremium) {
     status.innerHTML = '<i class="fas fa-check-circle"></i> <span>Compte Premium actif</span>';
     status.className = 'mt-5 px-5 py-1.5 bg-emerald-950 text-emerald-400 text-sm font-medium rounded-full flex items-center gap-2 border border-emerald-900';
@@ -759,10 +720,10 @@ function updateProfileStatus() {
 
 function activatePremium() {
   isPremium = true;
-  try { localStorage.setItem('beubeuland_premium', 'true'); } catch (e) {}
+  localStorage.setItem('beubeuland_premium', 'true');
   uploadsToday = 0;
-  try { localStorage.setItem('beubeuland_uploads_today', '0'); } catch (e) {}
-  saveUserProfile(getProfile()).catch(() => {});
+  localStorage.setItem('beubeuland_uploads_today', '0');
+  saveUserProfile(getProfile());
   updateProfileStatus();
   updateNavVisibility();
   alert('✅ Premium activé !');
@@ -771,85 +732,85 @@ function activatePremium() {
 
 function cancelSubscription() {
   if (confirm("Annuler l'abonnement Premium ?")) {
-    isPremium = false;
-    try { localStorage.setItem('beubeuland_premium', 'false'); } catch (e) {}
-    saveUserProfile(getProfile()).catch(() => {});
-    updateProfileStatus();
-    updateNavVisibility();
+    isPremium = false; localStorage.setItem('beubeuland_premium', 'false');
+    saveUserProfile(getProfile()); updateProfileStatus(); updateNavVisibility();
     showSection('feed');
   }
 }
 
 /* ========== UPLOAD ========== */
-function updateUploadCount() {
-  const el = document.getElementById('upload-count');
-  if (el) el.innerText = isNaN(uploadsToday) ? 0 : uploadsToday;
-}
+function updateUploadCount() { const el = document.getElementById('upload-count'); if (el) el.innerText = uploadsToday; }
 function handleVideoUpload(input) {
   if (!input.files.length) return;
   const file = input.files[0];
   const maxBytes = 500 * 1024 * 1024;
   if (file.size > maxBytes) { alert('Fichier trop volumineux (max 500MB)'); input.value = ''; return; }
-  const dropzone = document.getElementById('upload-dropzone');
-  const form = document.getElementById('upload-form');
-  if (dropzone) dropzone.classList.add('hidden');
-  if (form) form.classList.remove('hidden');
+  document.getElementById('upload-dropzone').classList.add('hidden');
+  document.getElementById('upload-form').classList.remove('hidden');
 }
 
 async function publishVideo() {
-  const titleInput = document.getElementById('video-title');
-  const title = titleInput ? titleInput.value.trim() : '';
+  const title = document.getElementById('video-title').value.trim();
   if (!title) { alert('Titre requis'); return; }
   if (uploadsToday >= 3) { alert('Limite atteinte (3 vidéos/jour)'); return; }
   const input = document.getElementById('upload-input');
-  const file = input ? input.files[0] : null;
+  const file = input.files[0];
   if (!file) { alert('Aucun fichier sélectionné'); return; }
   const publishBtn = document.getElementById('publish-btn');
   const progressEl = document.getElementById('upload-progress');
-  if (publishBtn) { publishBtn.disabled = true; publishBtn.textContent = 'Publication...'; }
-  if (progressEl) { progressEl.classList.add('visible'); progressEl.textContent = 'Enregistrement...'; }
+  publishBtn.disabled = true; publishBtn.textContent = 'Publication...';
+  progressEl.classList.add('visible'); progressEl.textContent = 'Lecture du fichier...';
+
   try {
+    // Convertir le fichier en ArrayBuffer pour stockage IndexedDB
+    const arrayBuffer = await file.arrayBuffer();
     const profile = getProfile();
-    await saveVideo({ id: Date.now(), title: title, description: document.getElementById('video-desc') ? document.getElementById('video-desc').value : '', fileBlob: file, authorId: getUserId(), authorName: profile.name, created_at: new Date().toISOString() });
-    uploadsToday++;
-    try { localStorage.setItem('beubeuland_uploads_today', String(uploadsToday)); } catch (e) {}
+    await saveVideo({ 
+      id: Date.now(), 
+      title: title, 
+      description: document.getElementById('video-desc').value, 
+      fileData: arrayBuffer,
+      fileType: file.type,
+      fileName: file.name,
+      authorId: getUserId(), 
+      authorName: profile.name, 
+      created_at: new Date().toISOString() 
+    });
+    uploadsToday++; localStorage.setItem('beubeuland_uploads_today', uploadsToday);
     alert('✅ Vidéo publiée !');
-    const form = document.getElementById('upload-form');
-    const dropzone = document.getElementById('upload-dropzone');
-    if (form) form.classList.add('hidden');
-    if (dropzone) dropzone.classList.remove('hidden');
-    if (titleInput) titleInput.value = '';
-    const descInput = document.getElementById('video-desc');
-    if (descInput) descInput.value = '';
-    if (input) input.value = '';
+    document.getElementById('upload-form').classList.add('hidden');
+    document.getElementById('upload-dropzone').classList.remove('hidden');
+    document.getElementById('video-title').value = '';
+    document.getElementById('video-desc').value = '';
+    input.value = '';
     showSection('feed');
   } catch (err) {
     console.error('Erreur :', err); alert('❌ Erreur lors de la publication');
   } finally {
-    if (publishBtn) { publishBtn.disabled = false; publishBtn.textContent = 'Publier la vidéo'; }
-    if (progressEl) progressEl.classList.remove('visible');
+    publishBtn.disabled = false; publishBtn.textContent = 'Publier la vidéo';
+    progressEl.classList.remove('visible');
   }
 }
 
 /* ========== INIT ========== */
 async function init() {
-  try {
-    if (localStorage.getItem('beubeuland_premium') === null) {
-      localStorage.setItem('beubeuland_premium', 'false');
-    }
-  } catch (e) {}
-  await loadUserProfile();
-  renderProfile();
+  if (localStorage.getItem('beubeuland_premium') === null) localStorage.setItem('beubeuland_premium', 'false');
+  await loadUserProfile(); renderProfile();
   updateNavVisibility();
-  document.querySelectorAll('.section').forEach(el => el.style.display = 'none');
+  // Cacher toutes les sections proprement
+  document.querySelectorAll('.section').forEach(el => {
+    el.style.display = 'none';
+    el.classList.add('hidden');
+  });
+  // Afficher uniquement le feed
   const feedSection = document.getElementById('section-feed');
-  if (feedSection) feedSection.style.display = 'block';
-  const navFeed = document.getElementById('nav-feed');
-  if (navFeed) navFeed.classList.add('active');
+  feedSection.style.display = 'block';
+  feedSection.classList.remove('hidden');
+  document.getElementById('nav-feed').classList.add('active');
   updateProfileStatus();
-  try { await loadVideos(); } catch (err) { console.error('Erreur chargement feed:', err); }
+  loadVideos();
 }
-window.addEventListener('load', init);
+window.onload = init;
 </script>
 </body>
 </html>
