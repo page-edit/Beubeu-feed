@@ -13,10 +13,13 @@ body {
   background: #09090b; 
   color: #fafafa; 
   margin: 0; 
-  overflow: hidden; 
   height: 100vh;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px 8px;
+  box-sizing: border-box;
 }
 
 .tiktok-feed { 
@@ -80,9 +83,8 @@ body {
   border-radius: 40px; 
   overflow: hidden; 
   position: relative; 
-  height: 80vh; 
-  max-height: 560px; 
-  min-height: 460px; 
+  flex: 1;
+  min-height: 0;
   display: flex; 
   flex-direction: column;
 }
@@ -429,6 +431,30 @@ body {
   from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
 }
+
+@media (max-height: 700px) {
+  .demo-container {
+    border-width: 6px;
+    border-radius: 24px;
+  }
+  .app-header {
+    padding: 6px 10px;
+    height: 36px;
+  }
+  .tiktok-feed {
+    padding-top: 36px !important;
+  }
+}
+
+@media (max-height: 600px) {
+  body {
+    padding: 4px;
+  }
+  .demo-container {
+    border-width: 4px;
+    border-radius: 16px;
+  }
+}
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -436,19 +462,17 @@ body {
 <body>
 
 <!-- Header -->
-<div class="max-w-[520px] mx-auto px-4 pt-2 pb-2 flex-shrink-0">
-  <div class="flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <div class="w-7 h-7 bg-white rounded-xl flex items-center justify-center">
-        <span class="text-black font-black text-lg tracking-[-1px]">B</span>
-      </div>
-      <span class="font-bold text-xl tracking-tighter">beubeuland</span>
+<div class="max-w-[520px] w-full mx-auto px-4 pt-1 pb-0 flex-shrink-0 text-center">
+  <div class="inline-flex items-center gap-2" style="padding: 2px 0;">
+    <div class="w-6 h-6 bg-white rounded-lg flex items-center justify-center">
+      <span class="text-black font-black text-sm tracking-[-1px]">B</span>
     </div>
+    <span class="font-bold text-lg tracking-tighter">beubeuland</span>
   </div>
 </div>
 
 <!-- Navigation -->
-<div class="max-w-[520px] mx-auto px-4 mb-2 flex-shrink-0">
+<div class="max-w-[520px] w-full mx-auto px-4 mb-1 flex-shrink-0">
   <div class="flex bg-zinc-900 rounded-3xl p-1 text-sm" id="nav-container">
     <button onclick="showSection('feed')" class="nav-tab flex-1 py-2 px-4 rounded-3xl active" id="nav-feed">Feed</button>
     <button onclick="showSection('profile')" class="nav-tab flex-1 py-2 px-4 rounded-3xl hidden" id="nav-profile">Profil</button>
@@ -457,7 +481,7 @@ body {
   </div>
 </div>
 
-<div class="max-w-[520px] mx-auto px-4 pb-2 flex-1 flex flex-col overflow-hidden" style="width: 100%;">
+<div class="max-w-[520px] mx-auto px-4 pb-2 flex-1 flex flex-col overflow-hidden" style="width: 100%; min-height: 0;">
 
   <!-- FEED -->
   <div id="section-feed" class="section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
@@ -473,7 +497,7 @@ body {
           <i class="fab fa-discord" style="font-size:10px;"></i> Discord
         </a>
       </div>
-      <div class="tiktok-feed pt-10" id="tiktok-feed" style="flex: 1; min-height: 0;"></div>
+      <div class="tiktok-feed" id="tiktok-feed" style="flex: 1; min-height: 0; overflow-y: auto; padding-top: 40px;"></div>
 
       <!-- Limit Overlay (gratuit) -->
       <div id="limit-overlay" class="limit-overlay hidden">
@@ -492,7 +516,7 @@ body {
   </div>
 
   <!-- PROFILE -->
-  <div id="section-profile" class="section">
+  <div id="section-profile" class="section" style="flex: 1; overflow-y: auto;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="flex flex-col items-center">
         <div class="relative">
@@ -521,7 +545,7 @@ body {
   </div>
 
   <!-- SUBSCRIPTION -->
-  <div id="section-subscription" class="section">
+  <div id="section-subscription" class="section" style="flex: 1; overflow-y: auto;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="text-center mb-8">
         <div class="text-emerald-400 text-sm font-semibold">PREMIUM</div>
@@ -569,7 +593,7 @@ body {
   </div>
 
   <!-- UPLOAD -->
-  <div id="section-upload" class="section">
+  <div id="section-upload" class="section" style="flex: 1; overflow-y: auto;">
     <div class="bg-zinc-900 rounded-3xl p-6">
       <div class="mb-6">
         <div class="font-bold text-xl">Publier une vidéo</div>
