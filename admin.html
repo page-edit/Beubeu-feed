@@ -52,7 +52,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 .admin-input { width: 100%; padding: 14px 16px; background: #0f0f11; border: 1px solid #27272a; border-radius: 12px; color: #fafafa; font-size: 15px; outline: none; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay.visible { display: flex; }
-.modal-box { background: #18181b; border: 1px solid #27272a; border-radius: 16px; width: calc(100% - 32px); max-width: 420px; overflow: hidden; }
+.modal-box { background: #18181b; border: 1px solid #27272a; border-radius: 16px; width: calc(100% - 32px); max-width: 520px; overflow: hidden; }
 .modal-header { padding: 20px; border-bottom: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; }
 .modal-header h3 { font-size: 16px; font-weight: 700; margin: 0; }
 .modal-close { background: none; border: none; color: #71717a; cursor: pointer; font-size: 16px; }
@@ -64,6 +64,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 .empty-state { text-align: center; padding: 32px 16px; color: #71717a; }
 .empty-state i { font-size: 32px; margin-bottom: 12px; display: block; }
 .hidden { display: none !important; }
+#admin-progress { font-size: 13px; color: #34d399; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -106,16 +107,17 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
       <div style="padding: 20px;">
         <div id="admin-dropzone" onclick="document.getElementById('admin-file').click()" class="upload-zone">
           <i class="fas fa-cloud-upload-alt"></i>
-          <div style="font-size: 16px; font-weight: 600;">Glissez votre vidéo ici</div>
+          <div style="font-size: 16px; font-weight: 600;">Cliquez pour choisir une vidéo</div>
           <div style="font-size: 12px; color: #71717a;">MP4, MOV — Max 500MB</div>
         </div>
         <input type="file" id="admin-file" accept="video/*" class="hidden" onchange="handleAdminFile(this)">
         <div id="admin-form" class="hidden" style="margin-top: 20px;">
           <div style="display: flex; flex-direction: column; gap: 12px;">
-            <input type="text" id="admin-title" placeholder="Titre *" class="admin-input">
-            <textarea id="admin-desc" placeholder="Description" rows="3" class="admin-input" style="resize: vertical; min-height: 80px;"></textarea>
-            <div id="admin-progress" style="font-size: 12px; color: #a1a1aa; display: none;"></div>
-            <button id="admin-publish-btn" onclick="publishAdminVideo()" class="modal-btn modal-btn-primary" style="padding: 14px;">Publier</button>
+            <input type="text" id="admin-title" placeholder="Titre de la vidéo *" class="admin-input">
+            <textarea id="admin-desc" placeholder="Description (optionnelle)" rows="3" class="admin-input" style="resize: vertical; min-height: 80px;"></textarea>
+            <div id="admin-progress" style="display: none;"></div>
+            <button id="admin-publish-btn" onclick="publishAdminVideo()" class="modal-btn modal-btn-primary" style="padding: 14px;">Publier sur le feed</button>
+            <button onclick="cancelUpload()" class="modal-btn modal-btn-secondary" style="padding: 12px;">Annuler</button>
           </div>
         </div>
       </div>
@@ -146,7 +148,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 </div>
 
 <div id="video-preview-modal" class="modal-overlay">
-  <div class="modal-box" style="max-width: 520px;">
+  <div class="modal-box">
     <div class="modal-header">
       <h3><i class="fas fa-play-circle text-emerald-400"></i> Aperçu</h3>
       <button onclick="closeVideoPreview()" class="modal-close"><i class="fas fa-times"></i></button>
@@ -164,7 +166,6 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #09090b; color: 
 // ========== CONFIG ==========
 const GITHUB_REPO = 'page-edit/beubeuland';
 const GITHUB_FILE = 'videos.json';
-const CATBOX_API = 'https://catbox.moe/user/api.php';
 
 // Token depuis localStorage ou prompt
 let GITHUB_TOKEN = localStorage.getItem('github_token');
@@ -210,16 +211,6 @@ async function getAllFromStore(store) {
   });
 }
 
-async function deleteFromStore(store, key) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.objectStore(store).delete(key);
-  });
-}
-
 // ========== GITHUB ==========
 async function getVideosJSON() {
   try {
@@ -233,31 +224,44 @@ async function getVideosJSON() {
 
 async function saveVideosJSON(data) {
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  
+  // Récupérer SHA actuel
   const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
     headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
   });
+  
   let sha = '';
   if (getRes.status === 200) {
     const getData = await getRes.json();
     sha = getData.sha;
   }
+
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
     method: 'PUT',
     headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Update videos', content, sha: sha || undefined })
+    body: JSON.stringify({ message: 'Add video', content, sha: sha || undefined })
   });
-  return res.ok;
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error('GitHub: ' + (err.message || res.status));
+  }
+  return true;
 }
 
-// ========== CATBOX ==========
-async function uploadToCatbox(file) {
+// ========== UPLOAD 0x0.st ==========
+async function uploadToHost(file) {
   const formData = new FormData();
-  formData.append('reqtype', 'fileupload');
-  formData.append('fileToUpload', file);
-  const res = await fetch(CATBOX_API, { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Upload failed');
+  formData.append('file', file);
+
+  const res = await fetch('https://0x0.st', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!res.ok) throw new Error('Upload failed: ' + res.status);
+  
   const url = await res.text();
-  if (!url.startsWith('http')) throw new Error('Invalid: ' + url);
   return url.trim();
 }
 
@@ -293,48 +297,79 @@ function handleAdminFile(input) {
   document.getElementById('admin-dropzone').classList.add('hidden');
   document.getElementById('admin-form').classList.remove('hidden');
   const title = document.getElementById('admin-title');
-  if (!title.value) title.value = file.name.split('.')[0];
+  if (!title.value) title.value = file.name.replace(/\.[^/.]+$/, '');
+}
+
+function cancelUpload() {
+  document.getElementById('admin-form').classList.add('hidden');
+  document.getElementById('admin-dropzone').classList.remove('hidden');
+  document.getElementById('admin-title').value = '';
+  document.getElementById('admin-desc').value = '';
+  document.getElementById('admin-file').value = '';
 }
 
 async function publishAdminVideo() {
   const title = document.getElementById('admin-title').value.trim();
   if (!title) { alert('Titre requis'); return; }
-  const file = document.getElementById('admin-file').files[0];
+  
+  const fileInput = document.getElementById('admin-file');
+  const file = fileInput.files[0];
   if (!file) { alert('Fichier requis'); return; }
 
   const btn = document.getElementById('admin-publish-btn');
   const progress = document.getElementById('admin-progress');
-  btn.disabled = true; btn.textContent = 'Upload...';
-  progress.style.display = 'block'; progress.textContent = 'Upload Catbox...';
+  btn.disabled = true; 
+  btn.textContent = 'Upload en cours...';
+  progress.style.display = 'block';
+  progress.textContent = '⏳ Upload vers le serveur...';
 
   try {
-    const videoUrl = await uploadToCatbox(file);
-    progress.textContent = 'Sauvegarde...';
+    // ÉTAPE 1: Upload vidéo
+    progress.textContent = '⏳ Upload de la vidéo (patientez)...';
+    const videoUrl = await uploadToHost(file);
+    console.log('URL reçue:', videoUrl);
+    
+    if (!videoUrl.startsWith('http')) throw new Error('URL invalide: ' + videoUrl);
+    
+    // ÉTAPE 2: Sauvegarde GitHub
+    progress.textContent = '⏳ Sauvegarde sur GitHub...';
     const data = await getVideosJSON();
+    
     data.videos.unshift({
       id: Date.now().toString(),
-      title, description: document.getElementById('admin-desc').value || '',
-      videoUrl, fileType: file.type,
-      authorName: 'ines_dz🇲🇦🫦', isAdmin: true,
-      likes: 0, createdAt: new Date().toISOString()
+      title: title,
+      description: document.getElementById('admin-desc').value || '',
+      videoUrl: videoUrl,
+      fileType: file.type,
+      authorName: 'ines_dz🇲🇦🫦',
+      isAdmin: true,
+      likes: 0,
+      createdAt: new Date().toISOString()
     });
-    progress.textContent = 'Publication...';
-    const saved = await saveVideosJSON(data);
-    if (!saved) throw new Error('Save failed');
 
-    alert('✅ Vidéo publiée !');
-    document.getElementById('admin-form').classList.add('hidden');
-    document.getElementById('admin-dropzone').classList.remove('hidden');
-    document.getElementById('admin-title').value = '';
-    document.getElementById('admin-desc').value = '';
-    document.getElementById('admin-file').value = '';
-    btn.disabled = false; btn.textContent = 'Publier';
-    progress.style.display = 'none';
-    updateStats();
+    progress.textContent = '⏳ Publication...';
+    await saveVideosJSON(data);
+
+    // Succès
+    progress.textContent = '✅ Vidéo publiée avec succès !';
+    progress.style.color = '#34d399';
+    
+    setTimeout(() => {
+      cancelUpload();
+      btn.disabled = false;
+      btn.textContent = 'Publier sur le feed';
+      progress.style.display = 'none';
+      progress.style.color = '';
+      updateStats();
+      alert('✅ Vidéo publiée !');
+    }, 1000);
+
   } catch (err) {
-    alert('❌ Erreur: ' + err.message);
-    btn.disabled = false; btn.textContent = 'Publier';
-    progress.style.display = 'none';
+    console.error('ERREUR COMPLÈTE:', err);
+    progress.textContent = '❌ Erreur: ' + err.message;
+    progress.style.color = '#f87171';
+    btn.disabled = false;
+    btn.textContent = 'Réessayer';
   }
 }
 
@@ -343,32 +378,45 @@ async function loadAllVideos() {
   try {
     const data = await getVideosJSON();
     const videos = data.videos || [];
-    if (!videos.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i>Aucune vidéo</div>'; return; }
+    
+    if (!videos.length) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i>Aucune vidéo</div>';
+      return;
+    }
 
     let html = '<table class="data-table"><thead><tr><th>Vidéo</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
     videos.forEach(v => {
       html += `<tr>
-        <td><div style="font-weight:600;">${escapeHtml(v.title)}</div><div style="font-size:11px;color:#71717a;">${escapeHtml(v.description || '').substring(0,50)}...</div></td>
+        <td>
+          <div style="font-weight:600;">${escapeHtml(v.title)}</div>
+          <div style="font-size:11px;color:#71717a;">${escapeHtml((v.description || '').substring(0,60))}...</div>
+          <div style="font-size:10px;color:#52525b;margin-top:4px;word-break:break-all;">${v.videoUrl}</div>
+        </td>
         <td style="white-space:nowrap;">${v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '-'}</td>
-        <td><div style="display:flex;gap:6px;">
-          <button onclick="previewVideo('${v.id}')" class="btn-icon btn-view"><i class="fas fa-play"></i></button>
-          <button onclick="deleteAdminVideo('${v.id}')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
-        </div></td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button onclick="previewVideo('${v.id}')" class="btn-icon btn-view"><i class="fas fa-play"></i></button>
+            <button onclick="deleteAdminVideo('${v.id}')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
       </tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
     document.getElementById('stat-videos').textContent = videos.length;
-  } catch (err) { container.innerHTML = '<div class="empty-state">Erreur</div>'; }
+  } catch (err) { 
+    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur: ' + err.message + '</div>'; 
+  }
 }
 
 async function deleteAdminVideo(id) {
-  if (!confirm('Supprimer ?')) return;
+  if (!confirm('Supprimer cette vidéo ?')) return;
   try {
     const data = await getVideosJSON();
     data.videos = data.videos.filter(v => v.id !== id);
     await saveVideosJSON(data);
-    loadAllVideos(); updateStats();
+    loadAllVideos();
+    updateStats();
   } catch (err) { alert('❌ Erreur: ' + err.message); }
 }
 
@@ -392,8 +440,8 @@ async function loadUsers() {
   const container = document.getElementById('users-list');
   try {
     const users = await getAllFromStore('users');
-    if (!users.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i>Aucun</div>'; return; }
-    let html = '<table class="data-table"><thead><tr><th>User</th><th>Statut</th></tr></thead><tbody>';
+    if (!users.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i>Aucun utilisateur</div>'; return; }
+    let html = '<table class="data-table"><thead><tr><th>Nom</th><th>Statut</th></tr></thead><tbody>';
     users.forEach(u => {
       html += `<tr><td>${escapeHtml(u.name || 'Anonyme')}</td><td>${u.isPremium ? 'Premium' : 'Gratuit'}</td></tr>`;
     });
@@ -406,12 +454,12 @@ async function loadWarnings() {
   const container = document.getElementById('warnings-list');
   try {
     const warnings = await getAllFromStore('warnings');
-    if (!warnings.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun</div>'; return; }
+    if (!warnings.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun avertissement</div>'; return; }
     let html = '';
     warnings.forEach(w => {
       html += `<div style="padding:12px;border-bottom:1px solid #27272a;">
         <div style="font-size:11px;color:#71717a;">${new Date(w.sentAt).toLocaleDateString('fr-FR')}</div>
-        <div style="margin-top:4px;">${escapeHtml(w.message)}</div>
+        <div style="margin-top:4px;font-size:13px;">${escapeHtml(w.message)}</div>
       </div>`;
     });
     container.innerHTML = html;
