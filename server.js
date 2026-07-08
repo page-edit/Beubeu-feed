@@ -9,7 +9,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 app.use(cors());
 
-// ========== WEBHOOK (DOIT ÊTRE AVANT express.json()) ==========
+// ========== WEBHOOK STRIPE (DOIT ÊTRE AVANT express.json()) ==========
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
