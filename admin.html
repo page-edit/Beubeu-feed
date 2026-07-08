@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Beubeuland • ines_dz🇲🇦🫦</title>
+<title>Beubeuland • ines_dz🇲🇦🫦 Admin</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
@@ -13,7 +13,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .admin-container { max-width: 1200px; margin: 0 auto; padding: 16px; }
 @media (min-width: 768px) { .admin-container { padding: 24px; } }
 
-/* Header */
 .admin-header {
   display: flex; flex-direction: column; gap: 16px; align-items: flex-start;
   margin-bottom: 24px; padding-bottom: 16px;
@@ -43,7 +42,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 .admin-back-btn:hover { background: #27272a; border-color: #3f3f46; color: #fff; }
 
-/* Stats Grid */
 .stats-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
   margin-bottom: 24px;
@@ -63,7 +61,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .stat-value.emerald { color: #34d399; }
 .stat-value.orange { color: #fb923c; }
 
-/* Tabs */
 .tabs-wrapper { 
   display: flex; gap: 4px; margin-bottom: 24px; 
   overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -78,7 +75,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .admin-tab:hover { color: #d4d4d8; background: #18181b; }
 .admin-tab.active { color: #fff; background: #27272a; }
 
-/* Content Cards */
 .content-card {
   background: #18181b; border: 1px solid #27272a; border-radius: 16px;
   overflow: hidden;
@@ -90,9 +86,7 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 .content-card-header i { font-size: 13px; }
 .content-card-body { padding: 0; }
-@media (max-width: 640px) { .content-card-body { padding: 0; } }
 
-/* Table */
 .data-table { width: 100%; border-collapse: collapse; min-width: 600px; }
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table th {
@@ -109,7 +103,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: #1c1c1f; }
 
-/* User cell */
 .user-cell { display: flex; align-items: center; gap: 12px; }
 .user-avatar {
   width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3f3f46, #18181b);
@@ -121,7 +114,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .user-name { font-weight: 600; color: #fafafa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-id { font-size: 11px; color: #71717a; font-family: monospace; }
 
-/* Badges */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
@@ -130,7 +122,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .badge-free { background: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; }
 .badge-admin { background: #1e3a5f; color: #60a5fa; border: 1px solid #1e40af; }
 
-/* Buttons */
 .btn-icon {
   width: 32px; height: 32px; border-radius: 8px; border: none;
   display: inline-flex; align-items: center; justify-content: center;
@@ -143,7 +134,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .btn-view { background: #27272a; color: #d4d4d8; }
 .btn-view:hover { background: #3f3f46; }
 
-/* Upload zone */
 .upload-zone {
   border: 2px dashed #3f3f46; border-radius: 16px; padding: 32px 16px;
   text-align: center; cursor: pointer; transition: all 0.2s;
@@ -154,7 +144,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .upload-zone-title { font-size: 16px; font-weight: 600; color: #d4d4d8; }
 .upload-zone-sub { font-size: 12px; color: #71717a; margin-top: 4px; }
 
-/* Form inputs */
 .admin-input {
   width: 100%; padding: 14px 16px; background: #0f0f11; border: 1px solid #27272a;
   border-radius: 12px; color: #fafafa; font-size: 15px; outline: none; transition: border-color 0.2s;
@@ -162,7 +151,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .admin-input:focus { border-color: #3f3f46; }
 .admin-input::placeholder { color: #52525b; }
 
-/* Modal */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
   z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
@@ -192,12 +180,10 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .modal-btn-secondary { background: #27272a; color: #d4d4d8; }
 .modal-btn-secondary:hover { background: #3f3f46; }
 
-/* Empty state */
 .empty-state { text-align: center; padding: 32px 16px; color: #71717a; }
 @media (min-width: 640px) { .empty-state { padding: 48px 20px; } }
 .empty-state i { font-size: 32px; margin-bottom: 12px; display: block; }
 
-/* Warning item */
 .warning-item { padding: 12px 14px; border-bottom: 1px solid #27272a; }
 @media (min-width: 640px) { .warning-item { padding: 16px 20px; } }
 .warning-item:last-child { border-bottom: none; }
@@ -214,23 +200,18 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
   padding: 12px; font-size: 13px; color: #d4d4d8; line-height: 1.5;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-/* Hide/show */
 .hidden { display: none !important; }
 </style>
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
 <div class="admin-container">
 
-  <!-- Header -->
   <div class="admin-header">
     <div class="admin-header-left">
       <div class="admin-logo"><span>B</span></div>
@@ -239,7 +220,7 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
           <span class="admin-title">beubeuland</span>
           <span class="admin-badge">ines_dz🇲🇦🫦</span>
         </div>
-        <span class="admin-subtitle">Panneau de modération — ines_dz🇲🇦🫦</span>
+        <span class="admin-subtitle">Panneau de modération</span>
       </div>
     </div>
     <a href="index.html" class="admin-back-btn">
@@ -247,18 +228,17 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </a>
   </div>
 
-  <!-- Stats -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-label">Utilisateurs inscrits</div>
+      <div class="stat-label">Utilisateurs</div>
       <div class="stat-value" id="stat-users">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Comptes Premium</div>
+      <div class="stat-label">Premium</div>
       <div class="stat-value emerald" id="stat-premium">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Vidéos publiées</div>
+      <div class="stat-label">Vidéos</div>
       <div class="stat-value" id="stat-videos">0</div>
     </div>
     <div class="stat-card">
@@ -267,7 +247,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </div>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs-wrapper">
     <button onclick="showTab('upload')" class="admin-tab active" id="tab-upload">
       <i class="fas fa-cloud-upload-alt mr-2"></i>Upload
@@ -283,7 +262,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </button>
   </div>
 
-  <!-- UPLOAD -->
   <div id="admin-upload" class="tab-content">
     <div class="content-card" style="max-width: 600px;">
       <div class="content-card-header">
@@ -311,7 +289,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </div>
   </div>
 
-  <!-- USERS -->
   <div id="admin-users" class="tab-content hidden">
     <div class="content-card">
       <div class="content-card-header">
@@ -324,7 +301,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </div>
   </div>
 
-  <!-- VIDEOS -->
   <div id="admin-videos" class="tab-content hidden">
     <div class="content-card">
       <div class="content-card-header">
@@ -337,7 +313,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
     </div>
   </div>
 
-  <!-- WARNINGS -->
   <div id="admin-warnings" class="tab-content hidden">
     <div class="content-card">
       <div class="content-card-header">
@@ -352,7 +327,6 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 
 </div>
 
-<!-- Warning Modal -->
 <div id="warning-modal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-header">
@@ -377,13 +351,34 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
   </div>
 </div>
 
+<div id="video-preview-modal" class="modal-overlay">
+  <div class="modal-box" style="max-width: 520px; width: calc(100% - 32px);">
+    <div class="modal-header">
+      <h3><i class="fas fa-play-circle text-emerald-400 mr-2"></i>Aperçu vidéo</h3>
+      <button onclick="closeVideoPreview()" class="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" style="padding: 0; background: #000;">
+      <video id="preview-video" style="width: 100%; max-height: 70vh; display: block;" controls playsinline></video>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeVideoPreview()" class="modal-btn modal-btn-secondary">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// ========== CONFIG GITHUB ==========
+const GITHUB_TOKEN = 'ghp_xxxxxxxxxxxxxxxxxxxx';
+const GITHUB_REPO = 'TON-USER/TON-REPO';
+const GITHUB_FILE = 'videos.json';
+
+// ========== CONFIG CATBOX ==========
+const CATBOX_API = 'https://catbox.moe/user/api.php';
+
+// ========== INDEXEDDB (users, warnings, likes locaux) ==========
 const DB_NAME = 'beubeuland_db';
 const DB_VERSION = 3;
-const STORE_VIDEOS = 'videos';
 const STORE_USERS = 'users';
-const STORE_LIKES = 'likes';
-const STORE_COMMENTS = 'comments';
 const STORE_WARNINGS = 'warnings';
 
 function openDB() {
@@ -391,15 +386,11 @@ function openDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_VIDEOS)) db.createObjectStore(STORE_VIDEOS, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(STORE_USERS)) db.createObjectStore(STORE_USERS, { keyPath: 'userId' });
-      if (!db.objectStoreNames.contains(STORE_LIKES)) db.createObjectStore(STORE_LIKES, { keyPath: 'id', autoIncrement: true });
-      if (!db.objectStoreNames.contains(STORE_COMMENTS)) db.createObjectStore(STORE_COMMENTS, { keyPath: 'id', autoIncrement: true });
       if (!db.objectStoreNames.contains(STORE_WARNINGS)) db.createObjectStore(STORE_WARNINGS, { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error('IndexedDB blocked'));
   });
 }
 
@@ -409,12 +400,7 @@ async function saveToStore(store, data) {
     const tx = db.transaction(store, 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(new Error('Transaction aborted'));
-    try {
-      tx.objectStore(store).put(data);
-    } catch (e) {
-      reject(e);
-    }
+    try { tx.objectStore(store).put(data); } catch (e) { reject(e); }
   });
 }
 
@@ -425,7 +411,6 @@ async function getAllFromStore(store) {
     const req = tx.objectStore(store).getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(req.error);
-    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -435,25 +420,72 @@ async function deleteFromStore(store, key) {
     const tx = db.transaction(store, 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(new Error('Transaction aborted'));
-    try {
-      tx.objectStore(store).delete(key);
-    } catch (e) {
-      reject(e);
-    }
+    try { tx.objectStore(store).delete(key); } catch (e) { reject(e); }
   });
 }
 
-async function saveVideo(video) { await saveToStore(STORE_VIDEOS, video); }
-
-async function getVideos() {
-  const videos = await getAllFromStore(STORE_VIDEOS);
-  videos.sort((a, b) => b.id - a.id);
-  return videos;
+// ========== GITHUB JSON ==========
+async function getVideosJSON() {
+  try {
+    const response = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_FILE}?t=${Date.now()}`);
+    if (response.status === 404) return { videos: [] };
+    return await response.json();
+  } catch (e) {
+    return { videos: [] };
+  }
 }
 
-async function deleteVideo(id) { await deleteFromStore(STORE_VIDEOS, id); }
+async function saveVideosJSON(data) {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  
+  const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+  });
+  
+  let sha = '';
+  if (getRes.status === 200) {
+    const getData = await getRes.json();
+    sha = getData.sha;
+  }
 
+  const body = {
+    message: 'Update videos.json',
+    content: content,
+    sha: sha || undefined
+  };
+
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  return res.ok;
+}
+
+// ========== CATBOX UPLOAD ==========
+async function uploadToCatbox(file) {
+  const formData = new FormData();
+  formData.append('reqtype', 'fileupload');
+  formData.append('fileToUpload', file);
+
+  const response = await fetch(CATBOX_API, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) throw new Error('Upload failed');
+  
+  const url = await response.text();
+  if (!url.startsWith('http')) throw new Error('Invalid response: ' + url);
+  
+  return url.trim();
+}
+
+// ========== TABS ==========
 function showTab(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   const target = document.getElementById('admin-' + tab);
@@ -467,20 +499,22 @@ function showTab(tab) {
   if (tab === 'upload') updateStats();
 }
 
+// ========== STATS ==========
 async function updateStats() {
   try {
     const users = await getAllFromStore(STORE_USERS);
-    const videos = await getAllFromStore(STORE_VIDEOS);
+    const data = await getVideosJSON();
     const warnings = await getAllFromStore(STORE_WARNINGS);
     document.getElementById('stat-users').textContent = users.length;
     document.getElementById('stat-premium').textContent = users.filter(u => u.isPremium).length;
-    document.getElementById('stat-videos').textContent = videos.length;
+    document.getElementById('stat-videos').textContent = data.videos ? data.videos.length : 0;
     document.getElementById('stat-warnings').textContent = warnings.length;
   } catch (err) {
     console.error('Erreur stats:', err);
   }
 }
 
+// ========== UPLOAD ==========
 function handleAdminFile(input) {
   if (!input.files.length) return;
   const file = input.files[0];
@@ -496,54 +530,68 @@ function handleAdminFile(input) {
 async function publishAdminVideo() {
   const title = document.getElementById('admin-title').value.trim();
   if (!title) { alert('Titre requis'); return; }
+  
   const fileInput = document.getElementById('admin-file');
   const file = fileInput.files[0];
   if (!file) { alert('Aucun fichier sélectionné'); return; }
+
   const btn = document.getElementById('admin-publish-btn');
   const progressEl = document.getElementById('admin-progress');
-  btn.disabled = true; btn.textContent = 'Publication en cours...';
-  progressEl.style.display = 'block'; progressEl.textContent = 'Lecture du fichier...';
+  btn.disabled = true; 
+  btn.textContent = 'Upload en cours...';
+  progressEl.style.display = 'block';
+  progressEl.textContent = 'Upload vers Catbox...';
 
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    progressEl.textContent = 'Enregistrement...';
+    const videoUrl = await uploadToCatbox(file);
+    progressEl.textContent = 'Sauvegarde...';
 
-    await saveVideo({
-      id: Date.now(),
+    const data = await getVideosJSON();
+    
+    data.videos.unshift({
+      id: Date.now().toString(),
       title: title,
-      description: document.getElementById('admin-desc').value,
-      fileData: arrayBuffer,
+      description: document.getElementById('admin-desc').value || '',
+      videoUrl: videoUrl,
       fileType: file.type,
-      fileName: file.name,
-      authorId: 'admin',
       authorName: 'ines_dz🇲🇦🫦',
       isAdmin: true,
-      created_at: new Date().toISOString()
+      likes: 0,
+      createdAt: new Date().toISOString()
     });
-    alert('✅ Vidéo publiée avec succès !');
+
+    progressEl.textContent = 'Publication...';
+    const saved = await saveVideosJSON(data);
+    
+    if (!saved) throw new Error('Échec de la sauvegarde');
+
+    alert('✅ Vidéo publiée !');
     document.getElementById('admin-form').classList.add('hidden');
     document.getElementById('admin-dropzone').classList.remove('hidden');
     document.getElementById('admin-title').value = '';
     document.getElementById('admin-desc').value = '';
     fileInput.value = '';
-    btn.disabled = false; btn.textContent = 'Publier sur le feed';
+    btn.disabled = false;
+    btn.textContent = 'Publier sur le feed';
     progressEl.style.display = 'none';
     updateStats();
+
   } catch (err) {
-    console.error('Erreur :', err);
-    alert('❌ Erreur lors de la publication: ' + (err.message || 'Inconnue'));
-    btn.disabled = false; btn.textContent = 'Publier sur le feed';
+    console.error('Erreur:', err);
+    alert('❌ Erreur: ' + (err.message || 'Upload échoué'));
+    btn.disabled = false;
+    btn.textContent = 'Publier sur le feed';
     progressEl.style.display = 'none';
   }
 }
 
+// ========== USERS ==========
 async function loadUsers() {
   const container = document.getElementById('users-list');
   if (!container) return;
 
   try {
     const users = await getAllFromStore(STORE_USERS);
-    const videos = await getAllFromStore(STORE_VIDEOS);
     const warnings = await getAllFromStore(STORE_WARNINGS);
 
     if (users.length === 0) {
@@ -552,11 +600,10 @@ async function loadUsers() {
     }
 
     let html = '<table class="data-table"><thead><tr>';
-    html += '<th>Utilisateur</th><th>Statut</th><th>Vidéos</th><th>Avertissements</th><th>Inscrit le</th><th>Actions</th>';
+    html += '<th>Utilisateur</th><th>Statut</th><th>Avertissements</th><th>Inscrit le</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
 
     users.forEach(u => {
-      const userVideos = videos.filter(v => v.authorId === u.userId);
       const userWarnings = warnings.filter(w => w.userId === u.userId);
       const badgeClass = u.isPremium ? 'badge-premium' : 'badge-free';
       const badgeText = u.isPremium ? 'Premium' : 'Gratuit';
@@ -573,12 +620,10 @@ async function loadUsers() {
           </div>
         </td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        <td>${userVideos.length}</td>
         <td>${userWarnings.length}</td>
         <td>${u.joinedAt ? new Date(u.joinedAt).toLocaleDateString('fr-FR') : '-'}</td>
         <td>
           <div style="display: flex; gap: 6px;">
-            <button onclick="viewUserVideos('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-view" title="Voir les vidéos"><i class="fas fa-eye"></i></button>
             <button onclick="openWarningModal('${u.userId}', '${escapeHtml(u.name || 'Anonyme')}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
           </div>
         </td>
@@ -588,18 +633,18 @@ async function loadUsers() {
     html += '</tbody></table>';
     container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
   } catch (err) {
-    console.error('Erreur chargement utilisateurs:', err);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
+    container.innerHTML = '<div class="empty-state">Erreur de chargement</div>';
   }
 }
 
+// ========== VIDEOS ==========
 async function loadAllVideos() {
   const container = document.getElementById('all-videos-list');
   if (!container) return;
 
   try {
-    const videos = await getVideos();
-    const users = await getAllFromStore(STORE_USERS);
+    const data = await getVideosJSON();
+    const videos = data.videos || [];
 
     if (videos.length === 0) {
       container.innerHTML = '<div class="empty-state"><i class="fas fa-video"></i>Aucune vidéo publiée</div>';
@@ -607,30 +652,24 @@ async function loadAllVideos() {
     }
 
     let html = '<table class="data-table"><thead><tr>';
-    html += '<th>Vidéo</th><th>Auteur</th><th>Date</th><th>Actions</th>';
+    html += '<th>Vidéo</th><th>URL</th><th>Date</th><th>Likes</th><th>Actions</th>';
     html += '</tr></thead><tbody>';
 
     videos.forEach(v => {
-      const author = users.find(u => u.userId === v.authorId);
-      const authorName = v.authorName || (author ? author.name : 'Inconnu');
-      const isAdmin = v.isAdmin || v.authorId === 'admin';
-      const authorBadge = isAdmin ? '<span class="badge badge-admin" style="margin-left:6px;">ines_dz🇲🇦🫦</span>' : '';
-
       html += `<tr>
         <td>
-          <div style="font-weight: 600; color: #fafafa;">${escapeHtml(v.title)}</div>
-          <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
+          <div style="font-weight: 600;">${escapeHtml(v.title)}</div>
+          <div style="font-size: 11px; color: #71717a;">${escapeHtml(v.description || '').substring(0, 60)}...</div>
         </td>
         <td>
-          <span style="color: ${isAdmin ? '#60a5fa' : '#d4d4d8'}; font-weight: 500;">@${escapeHtml(authorName)}</span>
-          ${authorBadge}
+          <a href="${v.videoUrl}" target="_blank" style="color: #60a5fa; font-size: 11px; word-break: break-all;">${v.videoUrl.substring(0, 40)}...</a>
         </td>
-        <td style="white-space: nowrap;">${v.created_at ? new Date(v.created_at).toLocaleDateString('fr-FR') : '-'}</td>
+        <td style="white-space: nowrap;">${v.createdAt ? new Date(v.createdAt).toLocaleDateString('fr-FR') : '-'}</td>
+        <td>${v.likes || 0}</td>
         <td>
           <div style="display: flex; gap: 6px;">
-            <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
-            ${v.authorId !== 'admin' ? `<button onclick="openWarningModal('${v.authorId}', '${escapeHtml(authorName)}')" class="btn-icon btn-warn" title="Avertir l'auteur"><i class="fas fa-exclamation-triangle"></i></button>` : ''}
-            <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+            <button onclick="previewVideo('${v.id}')" class="btn-icon btn-view"><i class="fas fa-play"></i></button>
+            <button onclick="deleteAdminVideo('${v.id}')" class="btn-icon btn-delete"><i class="fas fa-trash"></i></button>
           </div>
         </td>
       </tr>`;
@@ -638,69 +677,58 @@ async function loadAllVideos() {
 
     html += '</tbody></table>';
     container.innerHTML = '<div class="table-scroll-wrapper">' + html + '</div>';
+    document.getElementById('stat-videos').textContent = videos.length;
+
   } catch (err) {
-    console.error('Erreur chargement vidéos:', err);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
+    container.innerHTML = '<div class="empty-state">Erreur</div>';
   }
 }
 
 async function deleteAdminVideo(id) {
-  if (!confirm('Supprimer cette vidéo ? Cette action est irréversible.')) return;
+  if (!confirm('Supprimer cette vidéo ?')) return;
+  
   try {
-    await deleteVideo(id);
+    const data = await getVideosJSON();
+    data.videos = data.videos.filter(v => v.id !== id);
+    await saveVideosJSON(data);
     loadAllVideos();
     updateStats();
   } catch (err) {
-    console.error('Erreur suppression:', err);
-    alert('❌ Erreur lors de la suppression: ' + (err.message || 'Inconnue'));
+    alert('❌ Erreur: ' + err.message);
   }
 }
 
-async function viewUserVideos(userId, userName) {
+// ========== PREVIEW ==========
+async function previewVideo(videoId) {
   try {
-    const videos = await getAllFromStore(STORE_VIDEOS);
-    const userVideos = videos.filter(v => v.authorId === userId).sort((a, b) => b.id - a.id);
-
-    if (userVideos.length === 0) {
-      alert(userName + " n'a publié aucune vidéo.");
+    const data = await getVideosJSON();
+    const video = data.videos.find(v => v.id === videoId);
+    if (!video || !video.videoUrl) {
+      alert('Vidéo introuvable');
       return;
     }
 
-    showTab('videos');
-    const container = document.getElementById('all-videos-list');
-
-    let html = `<div style="padding: 16px 20px; border-bottom: 1px solid #27272a; display: flex; align-items: center; gap: 12px;">`;
-    html += `<button onclick="loadAllVideos()" class="btn-icon btn-view" title="Retour"><i class="fas fa-arrow-left"></i></button>`;
-    html += `<span style="font-weight: 700; font-size: 14px;">Vidéos de ${escapeHtml(userName)}</span>`;
-    html += `<span style="font-size: 12px; color: #71717a;">(${userVideos.length})</span>`;
-    html += `</div>`;
-    html += '<table class="data-table"><thead><tr><th>Vidéo</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
-
-    userVideos.forEach(v => {
-      html += `<tr>
-        <td>
-          <div style="font-weight: 600;">${escapeHtml(v.title)}</div>
-          <div style="font-size: 11px; color: #71717a; margin-top: 2px;">${escapeHtml(v.description || '').substring(0, 60)}${(v.description || '').length > 60 ? '...' : ''}</div>
-        </td>
-        <td style="white-space: nowrap;">${v.created_at ? new Date(v.created_at).toLocaleDateString('fr-FR') : '-'}</td>
-        <td>
-          <div style="display: flex; gap: 6px;">
-            <button onclick="previewVideo(${v.id})" class="btn-icon btn-view" title="Voir la vidéo"><i class="fas fa-play"></i></button>
-            <button onclick="openWarningModal('${v.authorId}', '${escapeHtml(userName)}')" class="btn-icon btn-warn" title="Avertir"><i class="fas fa-exclamation-triangle"></i></button>
-            <button onclick="deleteAdminVideo(${v.id})" class="btn-icon btn-delete" title="Supprimer"><i class="fas fa-trash"></i></button>
-          </div>
-        </td>
-      </tr>`;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    const videoEl = document.getElementById('preview-video');
+    videoEl.src = video.videoUrl;
+    videoEl.load();
+    
+    document.getElementById('video-preview-modal').classList.add('visible');
+    videoEl.play().catch(() => {});
   } catch (err) {
-    console.error('Erreur vue utilisateur:', err);
-    alert('❌ Erreur de chargement');
+    alert('❌ Erreur de lecture');
   }
 }
 
+function closeVideoPreview() {
+  const videoEl = document.getElementById('preview-video');
+  if (videoEl) {
+    videoEl.pause();
+    videoEl.src = '';
+  }
+  document.getElementById('video-preview-modal').classList.remove('visible');
+}
+
+// ========== WARNINGS ==========
 function openWarningModal(userId, userName) {
   document.getElementById('warning-target-id').value = userId;
   document.getElementById('warning-target-name').textContent = userName;
@@ -728,8 +756,7 @@ async function sendWarning() {
       loadWarnings();
     }
   } catch (err) {
-    console.error('Erreur envoi avertissement:', err);
-    alert('❌ Erreur lors de l\'envoi: ' + (err.message || 'Inconnue'));
+    alert('❌ Erreur: ' + err.message);
   }
 }
 
@@ -742,7 +769,7 @@ async function loadWarnings() {
     const users = await getAllFromStore(STORE_USERS);
 
     if (warnings.length === 0) {
-      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun avertissement envoyé</div>';
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i>Aucun avertissement</div>';
       return;
     }
 
@@ -753,7 +780,7 @@ async function loadWarnings() {
       const user = users.find(u => u.userId === w.userId);
       const userName = user ? user.name : w.userId;
       const statusClass = w.seen ? 'seen' : 'unseen';
-      const statusText = w.seen ? 'Vu par l\'utilisateur' : 'Non vu';
+      const statusText = w.seen ? 'Vu' : 'Non vu';
 
       html += `<div class="warning-item">
         <div class="warning-header">
@@ -761,7 +788,7 @@ async function loadWarnings() {
             <span class="warning-user">${escapeHtml(userName)}</span>
             <span class="warning-status ${statusClass}">${statusText}</span>
           </div>
-          <span class="warning-date">${w.sentAt ? new Date(w.sentAt).toLocaleDateString('fr-FR') + ' à ' + new Date(w.sentAt).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : '-'}</span>
+          <span class="warning-date">${w.sentAt ? new Date(w.sentAt).toLocaleDateString('fr-FR') : '-'}</span>
         </div>
         <div class="warning-msg">${escapeHtml(w.message)}</div>
       </div>`;
@@ -769,61 +796,8 @@ async function loadWarnings() {
 
     container.innerHTML = html;
   } catch (err) {
-    console.error('Erreur chargement avertissements:', err);
-    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i>Erreur de chargement</div>';
+    container.innerHTML = '<div class="empty-state">Erreur</div>';
   }
-}
-
-
-async function previewVideo(videoId) {
-  try {
-    const videos = await getAllFromStore(STORE_VIDEOS);
-    const video = videos.find(v => v.id === videoId);
-    if (!video) { alert('Vidéo introuvable'); return; }
-
-    const videoEl = document.getElementById('preview-video');
-    if (!videoEl) { alert('Erreur interne'); return; }
-
-    // Clean up previous object URL
-    if (videoEl.dataset.objectUrl) {
-      URL.revokeObjectURL(videoEl.dataset.objectUrl);
-    }
-
-    if (video.fileData && video.fileData.byteLength > 0) {
-      try {
-        const blob = new Blob([video.fileData], { type: video.fileType || 'video/mp4' });
-        const url = URL.createObjectURL(blob);
-        videoEl.dataset.objectUrl = url;
-        videoEl.src = url;
-      } catch (e) {
-        console.error('Erreur blob:', e);
-        alert('❌ Impossible de lire la vidéo');
-        return;
-      }
-    } else {
-      alert('❌ Aucune donnée vidéo');
-      return;
-    }
-
-    document.getElementById('video-preview-modal').classList.add('visible');
-    videoEl.play().catch(() => {});
-  } catch (err) {
-    console.error('Erreur preview:', err);
-    alert('❌ Erreur de lecture');
-  }
-}
-
-function closeVideoPreview() {
-  const videoEl = document.getElementById('preview-video');
-  if (videoEl) {
-    videoEl.pause();
-    if (videoEl.dataset.objectUrl) {
-      URL.revokeObjectURL(videoEl.dataset.objectUrl);
-      delete videoEl.dataset.objectUrl;
-    }
-    videoEl.src = '';
-  }
-  document.getElementById('video-preview-modal').classList.remove('visible');
 }
 
 function escapeHtml(str) {
@@ -843,21 +817,5 @@ window.onload = function() {
   }
 }
 </script>
-<!-- Video Preview Modal -->
-<div id="video-preview-modal" class="modal-overlay">
-  <div class="modal-box" style="max-width: 520px; width: calc(100% - 32px);">
-    <div class="modal-header">
-      <h3><i class="fas fa-play-circle text-emerald-400 mr-2"></i>Aperçu vidéo</h3>
-      <button onclick="closeVideoPreview()" class="modal-close"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body" style="padding: 0; background: #000;">
-      <video id="preview-video" style="width: 100%; max-height: 70vh; display: block;" controls playsinline></video>
-    </div>
-    <div class="modal-footer">
-      <button onclick="closeVideoPreview()" class="modal-btn modal-btn-secondary">Fermer</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
