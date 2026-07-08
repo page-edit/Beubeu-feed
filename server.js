@@ -1,13 +1,71 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 app.use(cors());
+
+// ========== WEBHOOK (DOIT ÊTRE AVANT express.json()) ==========
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+
+    verifiedPayments.set(session.id, {
+      userId: session.client_reference_id || 'unknown',
+      status: 'paid',
+      amount: session.amount_total,
+      customerEmail: session.customer_details?.email,
+      verifiedAt: new Date().toISOString()
+    });
+    savePayments();
+
+    console.log('Payment verified via webhook:', session.id);
+  }
+
+  res.json({ received: true });
+});
+
+// ========== MIDDLEWARE JSON (APRÈS le webhook) ==========
 app.use(express.json());
 
-// In-memory store for verified payments (use Redis/DB in production)
-const verifiedPayments = new Map();
+// ========== PERSISTENCE FICHIER ==========
+const DATA_FILE = path.join(__dirname, 'payments.json');
+
+let verifiedPayments = new Map();
+try {
+  if (fs.existsSync(DATA_FILE)) {
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    verifiedPayments = new Map(Object.entries(data));
+    console.log(`Loaded ${verifiedPayments.size} verified payments from disk`);
+  }
+} catch (e) {
+  console.error('Error loading payments:', e);
+}
+
+function savePayments() {
+  try {
+    const obj = Object.fromEntries(verifiedPayments);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(obj, null, 2));
+  } catch (e) {
+    console.error('Error saving payments:', e);
+  }
+}
 
 // ========== VERIFY PAYMENT ==========
 app.post('/api/verify-payment', async (req, res) => {
@@ -18,7 +76,6 @@ app.post('/api/verify-payment', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing sessionId or userId' });
     }
 
-    // Check if already verified
     if (verifiedPayments.has(sessionId)) {
       const data = verifiedPayments.get(sessionId);
       if (data.userId === userId && data.status === 'paid') {
@@ -26,17 +83,16 @@ app.post('/api/verify-payment', async (req, res) => {
       }
     }
 
-    // Verify with Stripe API
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid') {
-      // Store verification
       verifiedPayments.set(sessionId, {
         userId: userId,
         status: 'paid',
         amount: session.amount_total,
         verifiedAt: new Date().toISOString()
       });
+      savePayments();
 
       return res.json({ 
         success: true, 
@@ -68,13 +124,11 @@ app.post('/api/check-premium', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing parameters' });
     }
 
-    // Check our records
     const payment = verifiedPayments.get(sessionId);
     if (payment && payment.userId === userId && payment.status === 'paid') {
       return res.json({ success: true, premium: true });
     }
 
-    // Also verify with Stripe (in case webhook updated it)
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (session.payment_status === 'paid') {
@@ -83,6 +137,7 @@ app.post('/api/check-premium', async (req, res) => {
           status: 'paid',
           verifiedAt: new Date().toISOString()
         });
+        savePayments();
         return res.json({ success: true, premium: true });
       }
     } catch (e) {
@@ -95,42 +150,13 @@ app.post('/api/check-premium', async (req, res) => {
   }
 });
 
-// ========== WEBHOOK (for automatic verification) ==========
-app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  // Handle the checkout.session.completed event
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-
-    // Store the verified payment
-    verifiedPayments.set(session.id, {
-      userId: session.client_reference_id || 'unknown',
-      status: 'paid',
-      amount: session.amount_total,
-      customerEmail: session.customer_details?.email,
-      verifiedAt: new Date().toISOString()
-    });
-
-    console.log('Payment verified via webhook:', session.id);
-  }
-
-  res.json({ received: true });
-});
-
-// ========== HEALTH CHECK ==========
+// ========== HEALTH CHECK (pour UptimeRobot) ==========
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    paymentsCount: verifiedPayments.size 
+  });
 });
 
 const PORT = process.env.PORT || 3000;
