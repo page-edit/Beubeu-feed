@@ -1,43 +1,93 @@
+// server.js - Backend Node.js pour verification Stripe
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const subscriptions = new Map();
-const usedSessions = new Set();
+// Stockage en memoire des paiements verifies (en prod: utiliser une vraie DB)
+const verifiedPayments = new Map();
 
+// ============================================
+// VERIFICATION SERVEUR - OBLIGATOIRE
+// ============================================
 app.post('/api/verify-payment', async (req, res) => {
-  const { sessionId, userId } = req.body;
-  if (!sessionId || !userId) return res.status(400).json({ error: 'sessionId et userId requis' });
-  if (usedSessions.has(sessionId)) return res.status(400).json({ error: 'Session déjà utilisée' });
-  
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  if (session.payment_status !== 'paid') return res.status(400).json({ error: 'Paiement non confirmé' });
-  if (session.amount_total !== 399) return res.status(400).json({ error: 'Montant incorrect' });
-  
-  usedSessions.add(sessionId);
-  const activationToken = crypto.randomBytes(32).toString('hex');
-  subscriptions.set(userId, { sessionId, status: 'active', activatedAt: new Date().toISOString(), activationToken });
-  
-  res.json({ success: true, activationToken });
+  try {
+    const { sessionId, userId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'session_id manquant' 
+      });
+    }
+
+    // VERIFICATION REELLE AVEC L'API STRIPE
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    // Check: le paiement est-il vraiment complete ?
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Paiement non confirme par Stripe',
+        status: session.payment_status
+      });
+    }
+
+    // Check: le montant correspond-il ?
+    if (session.amount_total !== 399) { // 3.99 EUR en centimes
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Montant incorrect' 
+      });
+    }
+
+    // Check: deja utilise ?
+    if (verifiedPayments.has(sessionId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Session deja utilisee' 
+      });
+    }
+
+    // Tout est OK - marquer comme verifie
+    verifiedPayments.set(sessionId, {
+      userId: userId,
+      verifiedAt: new Date().toISOString(),
+      customerEmail: session.customer_details?.email || null
+    });
+
+    res.json({ 
+      success: true,
+      message: 'Paiement verifie par Stripe',
+      customerEmail: session.customer_details?.email || null
+    });
+
+  } catch (err) {
+    console.error('Erreur verification Stripe:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur serveur lors de la verification' 
+    });
+  }
 });
 
-app.get('/api/check-premium/:userId', (req, res) => {
-  const sub = subscriptions.get(req.params.userId);
-  res.json({ premium: !!(sub && sub.status === 'active'), activatedAt: sub?.activatedAt });
-});
-
-app.post('/api/activate-premium', async (req, res) => {
-  const { userId, activationToken } = req.body;
-  const sub = subscriptions.get(userId);
-  if (!sub || sub.activationToken !== activationToken) return res.status(403).json({ error: 'Token invalide' });
-  sub.activationToken = null;
-  res.json({ success: true, activatedAt: sub.activatedAt });
+// Check si un user a deja un premium actif
+app.post('/api/check-premium', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    // En prod: verifier dans une vraie base de donnees
+    // Ici on simule - le client gere ca via localStorage mais avec un token signe
+    res.json({ premium: false });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Serveur sur le port ${PORT}`));
+app.listen(PORT, () => {
+  console.log('Serveur Beubeuland demarre sur le port ' + PORT);
+});
